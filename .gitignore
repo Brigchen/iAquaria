@@ -1,0 +1,47 @@
+# Root ignores for iAqua monorepo
+.codex/
+.trae/
+.DS_Store
+Thumbs.db
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.db
+.env
+.env.*
+
+# PlatformIO / embedded
+**/.pio/
+**/sdkconfig.old
+
+# Android / Gradle
+**/.gradle/
+**/local.properties
+**/captures/
+*.apk
+*.aab
+*.iml
+.idea/
+
+# Flutter / Dart / Harmony
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/build/
+**/.packages
+**/ohos/entry/build/
+**/ohos/entry/.preview/
+
+# Node (ohos tooling)
+**/node_modules/
+**/package-lock.json
+
+# VS Code local noise
+**/.vscode/.browse.c_cpp.db*
+**/ipch/
+
+iAquaria/build_locked_tmp/
+**/compile_commands.json
+

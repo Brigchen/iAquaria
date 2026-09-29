@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iAqua App · 全量页面原型（17 屏）</title>
+<style>
+  :root{
+    --teal:#0e9f8c; --teal-d:#0b7f70; --teal-l:#e2f5f1;
+    --bg:#f2f9f7; --card:#ffffff; --ink:#123b36; --muted:#6b8a85;
+    --line:#e3efec; --warn:#e8912d; --warn-l:#fdf3e3; --danger:#e05252;
+    --ok:#2fa36b; --radius:18px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:#e9f2f0; font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; color:var(--ink); padding:28px 24px 60px;}
+  h1{font-size:22px; margin-bottom:6px;}
+  .sub{color:var(--muted); font-size:13px; margin-bottom:8px; line-height:1.7; max-width:900px;}
+  .sub b{color:var(--teal-d);}
+  .board{display:flex; flex-wrap:wrap; gap:34px; justify-content:center;}
+  .sec{flex-basis:100%; display:flex; align-items:center; gap:10px; margin:22px 0 2px; font-size:15px; font-weight:800; color:var(--teal-d);}
+  .sec:after{content:""; flex:1; height:1px; background:#cfe3df;}
+  .sec span{font-weight:500; font-size:12px; color:var(--muted);}
+  .frame{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .cap{font-size:13px; color:var(--ink); font-weight:600;}
+  .cap span{color:var(--muted); font-weight:400; font-size:12px;}
+  .phone{width:328px; height:672px; background:#111; border-radius:38px; padding:9px; box-shadow:0 14px 34px rgba(18,59,54,.18);}
+  .screen{position:relative; width:100%; height:100%; background:var(--bg); border-radius:30px; overflow:hidden; display:flex; flex-direction:column;}
+  .scroll{flex:1; overflow-y:auto; scrollbar-width:none; padding:0 14px 10px;}
+  .scroll::-webkit-scrollbar{display:none;}
+  .statusbar{display:flex; justify-content:space-between; align-items:center; padding:10px 20px 4px; font-size:12px; font-weight:600;}
+  .statusbar.wt{position:absolute; top:0; left:0; right:0; z-index:4; color:#fff;}
+  .notch{position:absolute; top:9px; left:50%; transform:translateX(-50%); width:110px; height:24px; background:#111; border-radius:0 0 14px 14px; z-index:5;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:8px 2px 10px;}
+  .tankpick{display:flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:7px 12px; font-size:14px; font-weight:600;}
+  .tankpick svg{color:var(--muted);}
+  .iconbtn{position:relative; width:36px; height:36px; border-radius:12px; background:var(--card); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; color:var(--ink);}
+  .badge{position:absolute; top:-5px; right:-5px; background:var(--danger); color:#fff; font-size:10px; min-width:16px; height:16px; border-radius:8px; display:flex; align-items:center; justify-content:center; padding:0 4px;}
+  .pagetitle{font-size:21px; font-weight:800; margin:2px 0 12px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; margin-bottom:10px;}
+  .card h4{font-size:13px; color:var(--muted); font-weight:600; margin-bottom:8px;}
+  .banner{display:flex; gap:9px; align-items:flex-start; background:var(--warn-l); border:1px solid #f5d9ae; border-radius:var(--radius); padding:11px 12px; margin-bottom:10px;}
+  .banner .tri{color:var(--warn); flex:none; margin-top:1px;}
+  .banner .t{font-size:13px; font-weight:700; color:#9a5b12;}
+  .banner .d{font-size:12px; color:#b07a2e; margin-top:2px;}
+  .banner .go{margin-left:auto; font-size:12px; color:var(--teal-d); font-weight:600; white-space:nowrap; align-self:center;}
+  .cam{position:relative; border-radius:var(--radius); overflow:hidden; margin-bottom:10px; height:150px; background:#0d2b27;}
+  .cam img{width:100%; height:100%; object-fit:cover; display:block;}
+  .cam .tag{position:absolute; left:10px; top:10px; background:rgba(13,43,39,.55); color:#d9f2ee; font-size:11px; padding:3px 8px; border-radius:8px;}
+  .cam .live{position:absolute; right:10px; top:10px; display:flex; align-items:center; gap:5px; background:rgba(13,43,39,.55); color:#fff; font-size:11px; padding:3px 8px; border-radius:8px;}
+  .dot{width:7px; height:7px; border-radius:50%; background:#4ade80; display:inline-block;}
+  .dot.off{background:#c4d6d2;}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;}
+  .metric{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 12px;}
+  .metric .k{display:flex; align-items:center; justify-content:space-between; font-size:11.5px; color:var(--muted);}
+  .metric .v{font-size:19px; font-weight:800; margin-top:3px;}
+  .metric .v small{font-size:11px; color:var(--muted); font-weight:600; margin-left:2px;}
+  .st{width:8px; height:8px; border-radius:50%;}
+  .st.ok{background:var(--ok);} .st.warn{background:var(--warn);} .st.off{background:#c4d6d2;}
+  .metric.warn{border-color:#f0c98f; background:#fffdf7;}
+  .taskrow{display:flex; align-items:center; gap:8px; font-size:13px; padding:7px 0; border-bottom:1px dashed var(--line);}
+  .taskrow:last-child{border-bottom:none;}
+  .chip-done{margin-left:auto; font-size:11px; color:var(--ok); font-weight:700;}
+  .chip-todo{margin-left:auto; font-size:11px; color:var(--warn); font-weight:700;}
+  .nav{display:flex; background:var(--card); border-top:1px solid var(--line); padding:6px 8px 14px;}
+  .nav .it{flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10.5px; color:var(--muted); padding-top:4px;}
+  .nav .it.on{color:var(--teal-d); font-weight:700;}
+  .chips{display:flex; gap:7px; margin:0 0 12px; flex-wrap:wrap;}
+  .chip{font-size:12px; padding:6px 13px; border-radius:14px; background:var(--card); border:1px solid var(--line); color:var(--muted);}
+  .chip.on{background:var(--teal); border-color:var(--teal); color:#fff; font-weight:600;}
+  .day{font-size:13px; font-weight:800; color:var(--muted); margin:6px 0 8px;}
+  .tl{position:relative; padding-left:16px;}
+  .tl:before{content:""; position:absolute; left:3px; top:6px; bottom:6px; width:2px; background:var(--line); border-radius:2px;}
+  .ev{position:relative; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:11px 12px; margin-bottom:9px;}
+  .ev:before{content:""; position:absolute; left:-17.5px; top:16px; width:9px; height:9px; border-radius:50%; background:var(--teal); border:2px solid #fff;}
+  .ev .h{display:flex; align-items:center; gap:7px; font-size:13.5px; font-weight:700;}
+  .ev .h .tm{margin-left:auto; font-size:11.5px; color:var(--muted); font-weight:500;}
+  .ev .b{font-size:12.5px; color:var(--muted); margin-top:4px; line-height:1.55;}
+  .ev .auto{font-size:10px; background:var(--teal-l); color:var(--teal-d); border-radius:6px; padding:1.5px 6px; font-weight:600;}
+  .ev .ph{display:flex; gap:6px; margin-top:8px;}
+  .ev .ph img{width:52px; height:52px; object-fit:cover; border-radius:10px;}
+  .fab{position:absolute; right:16px; bottom:84px; width:52px; height:52px; border-radius:18px; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-size:26px; box-shadow:0 8px 18px rgba(14,159,140,.4);}
+  .grp{display:flex; align-items:center; gap:7px; font-size:13px; font-weight:800; margin:10px 0 8px;}
+  .grp .n{margin-left:auto; color:var(--muted); font-weight:500; font-size:12px;}
+  .grp.over .gt{color:var(--warn);}
+  .task{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:11px 12px; margin-bottom:8px;}
+  .task.over{border-color:#f0c98f; background:#fffdf7;}
+  .task .ic{width:34px; height:34px; border-radius:11px; background:var(--teal-l); color:var(--teal-d); display:flex; align-items:center; justify-content:center; flex:none;}
+  .task.over .ic{background:#fdeccd; color:#b07a2e;}
+  .task .tt{font-size:13.5px; font-weight:700;}
+  .task .dd{font-size:11.5px; color:var(--muted); margin-top:2px;}
+  .btn-mini{margin-left:auto; font-size:11.5px; font-weight:700; color:var(--teal-d); border:1px solid var(--teal); border-radius:10px; padding:5px 11px; white-space:nowrap;}
+  .btn-mini.ghost{color:var(--muted); border-color:var(--line);}
+  .cover{position:relative; border-radius:var(--radius); overflow:hidden; height:132px; margin-bottom:10px;}
+  .cover img{width:100%; height:100%; object-fit:cover;}
+  .cover .ov{position:absolute; inset:auto 0 0 0; padding:26px 14px 12px; background:linear-gradient(transparent, rgba(10,40,36,.78)); color:#fff;}
+  .cover .ov .n{font-size:18px; font-weight:800;}
+  .cover .ov .m{font-size:12px; opacity:.85; margin-top:3px;}
+  .quad{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;}
+  .qc{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:11px 12px; display:flex; align-items:center; gap:9px;}
+  .qc .ic{width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex:none;}
+  .qc .t{font-size:13px; font-weight:700;}
+  .qc .s{font-size:11px; color:var(--muted); margin-top:2px;}
+  .qc .ar{margin-left:auto; color:#b9d2cd;}
+  .facts{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;}
+  .fact{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 12px;}
+  .fact .k{font-size:11px; color:var(--muted); display:flex; gap:5px; align-items:center;}
+  .fact .v{font-size:15px; font-weight:800; margin-top:3px;}
+  .rowitem{display:flex; align-items:center; gap:9px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px; font-size:13.5px; font-weight:600;}
+  .rowitem .ar{margin-left:auto; color:#b9d2cd;}
+  .rowitem .sub2{margin-left:auto; color:var(--muted); font-weight:400; font-size:11.5px;}
+  .subhead{display:flex; align-items:center; gap:10px; padding:8px 2px 12px;}
+  .back{width:34px; height:34px; border-radius:12px; background:var(--card); border:1px solid var(--line); display:flex; align-items:center; justify-content:center;}
+  .subhead .ti{font-size:17px; font-weight:800;}
+  .subhead .ri{margin-left:auto; font-size:12px; color:var(--teal-d); font-weight:700;}
+  .seg{display:flex; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:3px; margin-bottom:12px;}
+  .seg div{flex:1; text-align:center; font-size:12px; color:var(--muted); padding:6px 0; border-radius:9px;}
+  .seg div.on{background:var(--teal); color:#fff; font-weight:700;}
+  .stat3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px;}
+  .stat3 .s{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:9px 10px; text-align:center;}
+  .stat3 .k{font-size:11px; color:var(--muted);}
+  .stat3 .v{font-size:15px; font-weight:800; margin-top:2px;}
+  .field{margin-bottom:13px;}
+  .field .lb{font-size:12.5px; color:var(--muted); font-weight:600; margin-bottom:6px;}
+  .inp{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:11px 13px; font-size:13.5px; display:flex; justify-content:space-between; align-items:center;}
+  .inp.ok{border-color:#a7dcc8;}
+  .inp .okm{font-size:11.5px; color:var(--ok); font-weight:700;}
+  .btn-main{background:var(--teal); color:#fff; text-align:center; font-size:14.5px; font-weight:700; border-radius:14px; padding:13px 0; margin-top:4px;}
+  .note{font-size:11px; color:#9db8b3; line-height:1.6; margin-top:10px;}
+  .rule{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 13px; margin-bottom:8px;}
+  .rule .rt{font-size:13.5px; font-weight:700;}
+  .rule .rd{font-size:11.5px; color:var(--muted); margin-top:2px;}
+  .sw{margin-left:auto; width:40px; height:22px; border-radius:11px; position:relative; flex:none;}
+  .sw.on{background:var(--teal);}
+  .sw.off{background:#cfe0dc;}
+  .sw:after{content:""; position:absolute; top:2px; width:18px; height:18px; border-radius:50%; background:#fff;}
+  .sw.on:after{right:2px;}
+  .sw.off:after{left:2px;}
+  .legend{font-size:11px; color:var(--muted); display:flex; gap:12px; margin-bottom:8px;}
+  .legend i{width:14px; height:3px; border-radius:2px; display:inline-block; margin-right:4px; vertical-align:middle;}
+  /* ---- 新增：列表行 / 提醒卡 / 切换面板 / 全屏画面 / M3 徽标 ---- */
+  .lrow{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin-bottom:8px;}
+  .lrow .av{width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex:none;}
+  .lrow .t{font-size:13.5px; font-weight:700;}
+  .lrow .d{font-size:11.5px; color:var(--muted); margin-top:2px;}
+  .lrow .ar{margin-left:auto; color:#b9d2cd;}
+  .alertc{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:11px 12px; margin-bottom:9px;}
+  .alertc.warn{border-color:#f0c98f; background:#fffdf7;}
+  .alertc .h{display:flex; gap:8px; align-items:center; font-size:13.5px; font-weight:700;}
+  .alertc .h .tm{margin-left:auto; font-size:11.5px; color:var(--muted); font-weight:500;}
+  .alertc .m{font-size:12px; color:var(--muted); margin-top:4px; line-height:1.6;}
+  .alertc .a{margin-top:7px; font-size:12px; color:var(--teal-d); font-weight:700;}
+  .backdrop{position:absolute; inset:0; background:rgba(10,40,36,.38); z-index:6;}
+  .sheet{position:absolute; left:10px; right:10px; top:62px; z-index:7; background:#fff; border-radius:18px; box-shadow:0 18px 40px rgba(18,59,54,.28); padding:8px;}
+  .sheet .sh{font-size:12px; color:var(--muted); font-weight:700; padding:8px 10px 6px;}
+  .tk{display:flex; align-items:center; gap:10px; border-radius:12px; padding:10px;}
+  .tk.on{background:var(--teal-l);}
+  .tk .av{width:38px; height:38px; border-radius:12px; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex:none;}
+  .tk.off .av{background:#b9d2cd;}
+  .tk .t{font-size:14px; font-weight:700;}
+  .tk .d{font-size:11.5px; color:var(--muted); margin-top:2px;}
+  .tk .ck{margin-left:auto; color:var(--teal-d); font-weight:800;}
+  .fscam{position:absolute; inset:0; background:#000;}
+  .fscam img{width:100%; height:100%; object-fit:cover;}
+  .gbtn{background:rgba(13,43,39,.6); color:#fff; border-radius:12px; padding:9px 15px; font-size:12.5px; font-weight:700; display:flex; align-items:center; gap:6px;}
+  .fscam .bot{position:absolute; bottom:22px; left:0; right:0; display:flex; justify-content:center; gap:10px; z-index:4;}
+  .fscam .top{position:absolute; top:34px; left:14px; right:14px; display:flex; align-items:center; gap:10px; z-index:4;}
+  .fscam .top .ti{color:#fff; font-size:14px; font-weight:700; text-shadow:0 1px 6px rgba(0,0,0,.5);}
+  .m3{font-size:9px; background:#e8ecfa; color:#5b76d6; border-radius:6px; padding:1.5px 6px; font-weight:800; vertical-align:2px; margin-left:5px;}
+  .sk{background:#e3efec; border-radius:12px; height:56px; margin-bottom:8px;}
+  /* ---- 新增：可编辑字段 / 弹层把手 ---- */
+  .fld{display:inline-block; min-width:44px; text-align:center; border:1px solid var(--line); background:#fbfefe; border-radius:8px; padding:2px 7px; font-weight:700; font-size:12px; color:var(--ink); margin:1px;}
+  .fld.lg{font-size:18px; padding:9px 12px; min-width:86px;}
+  .handle{width:40px; height:4px; border-radius:2px; background:#d8e8e4; margin:0 auto 10px;}
+  .stitle{font-size:15px; font-weight:800;}
+  .xbtn{margin-left:auto; width:30px; height:30px; border-radius:10px; background:var(--bg); color:var(--muted); display:flex; align-items:center; justify-content:center; font-size:15px;}
+  .f2{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;}
+  .f2 .fx{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:8px 11px;}
+  .f2 .fx .k{font-size:10.5px; color:var(--muted); font-weight:600;}
+  .f2 .fx .v{font-size:16px; font-weight:800; margin-top:3px;}
+</style>
+</head>
+<body>
+
+<h1>iAqua App · 全量页面原型（17 屏）</h1>
+<p class="sub">
+  依据 <b>docs/android_app_plan.md</b> 出的全量原型，覆盖 M1（核心四 Tab 与告警）、M2（内容管理 / 数据与提醒 / 导出）、M3（云端与设置，界面预留），
+  并包含规则自定义弹层（16 阈值编辑 / 17 免打扰自定义：<b>所有阈值区间、持续次数、冷却时间与免打扰时段均可自定义</b>）。
+  视觉为水系青绿风格，数据为示意值。示意图仅供交互与布局评审，不含真实数据。M1 的 01–08 屏与 docs/app_m1_prototype.html 一致（TDS 已更名滤前/滤后）。
+</p>
+
+<div class="board">
+
+<div class="sec">A · 核心四 Tab 与智能提醒（M1）<span>01–08</span></div>
+
+<!-- ============ 01 概览 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="topbar">
+        <div class="tankpick">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C7 3 3 8 3 12s4 9 9 9 9-5 9-9-4-9-9-9zm4 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z"/></svg>
+          客厅缸 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="iconbtn">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M10 21h4"/></svg>
+          <span class="badge">2</span>
+        </div>
+      </div>
+
+      <div class="banner">
+        <svg class="tri" width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L1 21h22L12 2zm0 6l7 12H5l7-12zm-1 4v4h2v-4h-2zm0 5v2h2v-2h-2z"/></svg>
+        <div><div class="t">水温 28.2℃ 接近上限</div><div class="d">已持续 15 分钟 · 建议关注加热棒</div></div>
+        <div class="go">查看曲线 ›</div>
+      </div>
+
+      <div class="cam">
+        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=freshwater%20planted%20aquarium%20underwater%20view%2C%20lush%20green%20aquatic%20plants%2C%20driftwood%2C%20small%20schooling%20tetra%20fish%2C%20clear%20water%2C%20soft%20natural%20lighting%2C%20realistic%20photo&image_size=landscape_4_3" alt="实时画面">
+        <div class="tag">实时画面 · 点击全屏</div>
+        <div class="live"><span class="dot"></span>MJPEG</div>
+      </div>
+
+      <div class="grid">
+        <div class="metric warn"><div class="k"><span>水温</span><span class="st warn"></span></div><div class="v">28.2<small>℃</small></div></div>
+        <div class="metric"><div class="k"><span>pH</span><span class="st ok"></span></div><div class="v">7.21</div></div>
+        <div class="metric"><div class="k"><span>ORP</span><span class="st ok"></span></div><div class="v">286<small>mV</small></div></div>
+        <div class="metric"><div class="k"><span>TDS(滤前)</span><span class="st ok"></span></div><div class="v">182<small>ppm</small></div></div>
+        <div class="metric"><div class="k"><span>TDS(滤后)</span><span class="st ok"></span></div><div class="v">185<small>ppm</small></div></div>
+        <div class="metric"><div class="k"><span>水位</span><span class="st ok"></span></div><div class="v">78<small>%</small></div></div>
+        <div class="metric"><div class="k"><span>光照</span><span class="st ok"></span></div><div class="v">4520<small>lx</small></div></div>
+        <div class="metric"><div class="k"><span>485 水温</span><span class="st ok"></span></div><div class="v">26.3<small>℃</small></div></div>
+      </div>
+
+      <div class="card">
+        <h4>今日任务</h4>
+        <div class="taskrow"><span>喂食 · 09:12 已完成（自动）</span><span class="chip-done">✓ 完成</span></div>
+        <div class="taskrow"><span>水质检测 · 待办</span><span class="chip-todo">待办 ›</span></div>
+      </div>
+    </div>
+    <div class="nav">
+      <div class="it on"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>概览</div>
+      <div class="it"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h13a3 3 0 013 3v13H7a3 3 0 01-3-3V4z"/><path d="M8 9h8M8 13h5"/></svg>日志</div>
+      <div class="it"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M8 14l3 3 5-5"/></svg>计划</div>
+      <div class="it"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12c3-4 7-6 12-6 2.5 0 4.5.5 6 1.5L18 12l3 4.5c-1.5 1-3.5 1.5-6 1.5-5 0-9-2-12-6z"/><circle cx="16" cy="10.5" r="0.8" fill="currentColor"/></svg>鱼缸</div>
+    </div>
+  </div></div>
+  <div class="cap">01 概览（Tab1）<span>　告警横幅 / 摄像头 / 8 指标 / 今日任务</span></div>
+</div>
+
+<!-- ============ 02 数据详情 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="subhead">
+        <div class="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5l-7 7 7 7"/></svg></div>
+        <div class="ti">水温 · 历史趋势</div>
+      </div>
+      <div class="seg"><div class="on">24h</div><div>7 天</div><div>30 天</div><div>1 年</div></div>
+      <div class="card">
+        <h4>客厅缸 · 水温</h4>
+        <div class="stat3"><div class="s"><div class="k">最低</div><div class="v">24.1℃</div></div><div class="s"><div class="k">均值</div><div class="v">26.3℃</div></div><div class="s"><div class="k">最高</div><div class="v">28.2℃</div></div></div>
+        <div class="legend"><span><i style="background:var(--teal)"></i>实测（已归一化降采样 ≤400 点）</span><span><i style="background:var(--warn)"></i>阈值 28℃</span></div>
+        <svg viewBox="0 0 300 120" width="100%" style="background:#fbfefe; border:1px solid var(--line); border-radius:12px;">
+          <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e9f8c" stop-opacity=".28"/><stop offset="1" stop-color="#0e9f8c" stop-opacity="0"/></linearGradient></defs>
+          <line x1="0" y1="34" x2="300" y2="34" stroke="#e8912d" stroke-width="1.2" stroke-dasharray="5 4"/>
+          <path d="M0 78 C20 70 30 82 45 76 S70 58 90 66 115 88 135 74 160 52 180 60 205 44 225 48 255 40 270 46 300 34" fill="none" stroke="#0e9f8c" stroke-width="2.2"/>
+          <path d="M0 78 C20 70 30 82 45 76 S70 58 90 66 115 88 135 74 160 52 180 60 205 44 225 48 255 40 270 46 300 34 L300 120 L0 120 Z" fill="url(#g1)"/>
+          <text x="4" y="12" font-size="8" fill="#8fa8a3">28.5℃</text>
+          <text x="4" y="116" font-size="8" fill="#8fa8a3">24.0℃</text>
+        </svg>
+        <div style="display:flex; justify-content:space-between; font-size:10px; color:#9db8b3; margin-top:5px;">
+          <span>昨天 10:00</span><span>16:00</span><span>22:00</span><span>04:00</span><span>今天 10:00</span>
+        </div>
+      </div>
+      <div class="banner">
+        <svg class="tri" width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L1 21h22L12 2zm0 6l7 12H5l7-12zm-1 4v4h2v-4h-2zm0 5v2h2v-2h-2z"/></svg>
+        <div><div class="t">连续 3 天夜间偏高</div><div class="d">建议核对加热棒温控与昼夜温差设定</div></div>
+      </div>
+      <div class="card">
+        <h4>关联日志</h4>
+        <div class="taskrow"><span>14:44 换水 30%</span><span class="chip-done">日志 ›</span></div>
+        <div class="taskrow"><span>09:12 喂食（自动）</span><span class="chip-done">日志 ›</span></div>
+      </div>
+    </div>
+  </div></div>
+  <div class="cap">02 数据详情<span>　单指标趋势 / 统计 / 阈值线 / 关联日志</span></div>
+</div>
+
+<!-- ============ 03 日志 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="topbar">
+        <div class="tankpick">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C7 3 3 8 3 12s4 9 9 9 9-5 9-9-4-9-9-9zm4 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z"/></svg>
+          客厅缸 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="iconbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></div>
+      </div>
+      <div class="pagetitle">日志</div>
+      <div class="chips"><span class="chip on">全部</span><span class="chip">水质检测</span><span class="chip">换水</span><span class="chip">喂食</span><span class="chip">维护</span></div>
+      <div class="day">今天</div>
+      <div class="tl">
+        <div class="ev"><div class="h">换水 <span class="auto">手动</span><span class="tm">14:44</span></div><div class="b">换水量 30% · 添加水质稳定剂</div>
+          <div class="ph"><img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=hand%20pouring%20clear%20water%20into%20aquarium%20with%20hose%2C%20partial%20water%20change%2C%20closeup%2C%20realistic%20photo&image_size=square" alt=""></div></div>
+        <div class="ev"><div class="h">水质检测 <span class="auto">手动</span><span class="tm">10:03</span></div><div class="b">pH 7.2 · GH 6 · KH 8</div></div>
+        <div class="ev"><div class="h">喂食 <span class="auto">自动</span><span class="tm">09:12</span></div><div class="b">设备投喂 · 一次 · 已完成</div></div>
+      </div>
+      <div class="day">昨天</div>
+      <div class="tl">
+        <div class="ev"><div class="h">过滤器清洗 <span class="auto">手动</span><span class="tm">17:21</span></div><div class="b">过滤棉更换 · 生化棉轻洗</div>
+          <div class="ph"><img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=aquarium%20canister%20filter%20media%20cleaning%2C%20hands%20holding%20white%20filter%20sponges%2C%20realistic%20photo&image_size=square" alt=""><img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=closeup%20of%20aquarium%20filter%20outflow%20underwater%2C%20clear%20bubbles%2C%20green%20plants%20background%2C%20realistic%20photo&image_size=square" alt=""></div></div>
+        <div class="ev"><div class="h">换水 <span class="auto">手动</span><span class="tm">19:51</span></div><div class="b">换水量 20%</div></div>
+      </div>
+    </div>
+    <div class="fab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg></div>
+    <div class="nav">
+      <div class="it"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>概览</div>
+      <div class="it on"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h13a3 3 0 013 3v13H7a3 3 0 01-3-3V4z"/><path d="M8 9h8M8 13h5"/></svg>日志</div>
+      <div class="it"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M8 14l3 3 5-5"/></svg>计划</div>
+      <div class="it"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12c3-4 7-6 12-6 2.5 0 4.5.5 6 1.5L18 12l3 4.5c-1.5 1-3.5 1.5-6 1.5-5 0-9-2-12-6z"/><circle cx="16" cy="10.5" r="0.8" fill="currentColor"/></svg>鱼缸</div>
+    </div>
+  </div></div>
+  <div class="cap">03 日志（Tab2）<span>　时间线 / 分类筛选 / 图文 / 手动·自动徽标</span></div>
+</div>
+
+<!-- ============ 04 新建记录 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="subhead">
+        <div class="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5l-7 7 7 7"/></svg></div>
+        <div class="ti">新建记录</div>
+      </div>
+      <div class="field"><div class="lb">类型</div>
+        <div class="chips" style="margin:0;"><span class="chip">水质检测</span><span class="chip on">换水</span><span class="chip">喂食</span><span class="chip">维护</span></div>
+      </div>
+      <div class="field"><div class="lb">换水量</div><div class="inp"><span>30 %</span><span style="color:#b9d2cd;">▾</span></div></div>
+      <div class="field"><div class="lb">备注</div><div class="inp"><span>添加水质稳定剂</span></div></div>
+      <div class="field"><div class="lb">照片（≤9 张）</div>
+        <div style="display:flex; gap:8px;">
+          <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=hand%20pouring%20clear%20water%20into%20aquarium%20with%20hose%2C%20partial%20water%20change%2C%20closeup%2C%20realistic%20photo&image_size=square" style="width:64px;height:64px;object-fit:cover;border-radius:12px;" alt="">
+          <div style="width:64px;height:64px;border:1.6px dashed #b9d2cd;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#9db8b3;font-size:24px;">+</div>
+        </div>
+      </div>
+      <div class="field"><div class="lb">关联缸</div><div class="inp"><span>客厅缸</span><span style="color:#b9d2cd;">▾</span></div></div>
+      <div class="btn-main">保存记录</div>
+      <div class="note">保存后写入养护日志，并自动顺延"换水"周期任务的下次到期时间。</div>
+    </div>
+  </div></div>
+  <div class="cap">04 新建记录（二级页）<span>　类型 / 数值 / 图文 / 关联缸</span></div>
+</div>
+
+<!-- ============ 05 计划 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="topbar">
+        <div class="tankpick">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C7 3 3 8 3 12s4 9 9 9 9-5 9-9-4-9-9-9zm4 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z"/></svg>
+          客厅缸 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="iconbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>
+      </div>
+      <div class="pagetitle">计划</div>
+      <div class="seg"><div class="on">今天</div><div>即将到期</div><div>全部</div></div>
+
+      <div class="grp over"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e8912d" stroke-width="2.4"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4"/></svg><span class="gt">已逾期</span><span class="n">1 项</span></div>
+      <div class="task over"><div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></div>
+        <div><div class="tt">滤材清洗</div><div class="dd">客厅缸 · 设备保养 · 每 30 天 · 已逾期 2 天</div></div><div class="btn-mini">完成</div></div>
+
+      <div class="grp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0e9f8c" stroke-width="2.4"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4"/></svg><span class="gt">今天</span><span class="n">7 项 · 已完成 2</span></div>
+      <div class="task"><div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h10a4 4 0 004-4V6h-6a8 8 0 00-8 6z"/><path d="M4 12c0 4 3 6 8 6h6v-2a4 4 0 00-4-4"/></svg></div>
+        <div><div class="tt">喂食 · 第 2 次</div><div class="dd">客厅缸 · 喂食 · 一次 · 17:00</div></div><div class="btn-mini">完成</div></div>
+      <div class="task"><div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c3 4 6 7.5 6 11a6 6 0 11-12 0c0-3.5 3-7 6-11z"/></svg></div>
+        <div><div class="tt">换水提醒</div><div class="dd">客厅缸 · 换水 · 每 7 天 · 今日 14:00 已执行</div></div><div class="btn-mini ghost">跳过</div></div>
+      <div class="task"><div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6M10 3v5L5 18a2 2 0 002 3h10a2 2 0 002-3l-5-10V3"/></svg></div>
+        <div><div class="tt">水质检测</div><div class="dd">客厅缸 · 水质检测 · 每 3 天</div></div><div class="btn-mini">完成</div></div>
+
+      <div class="grp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6b8a85" stroke-width="2.4"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4"/></svg><span class="gt">即将到期</span><span class="n">2 项</span></div>
+      <div class="task"><div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></div>
+        <div><div class="tt">设备保养 · 灯具除尘</div><div class="dd">客厅缸 · 设备保养 · 09-17</div></div><div class="btn-mini ghost">详情</div></div>
+      <div class="task"><div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c3 4 6 7.5 6 11a6 6 0 11-12 0c0-3.5 3-7 6-11z"/></svg></div>
+        <div><div class="tt">备用缸换水</div><div class="dd">阳台缸 · 换水 · 09-18</div></div><div class="btn-mini ghost">详情</div></div>
+    </div>
+    <div class="nav">
+      <div class="it"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>概览</div>
+      <div class="it"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h13a3 3 0 013 3v13H7a3 3 0 01-3-3V4z"/><path d="M8 9h8M8 13h5"/></svg>日志</div>
+      <div class="it on"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M8 14l3 3 5-5"/></svg>计划</div>
+      <div class="it"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12c3-4 7-6 12-6 2.5 0 4.5.5 6 1.5L18 12l3 4.5c-1.5 1-3.5 1.5-6 1.5-5 0-9-2-12-6z"/><circle cx="16" cy="10.5" r="0.8" fill="currentColor"/></svg>鱼缸</div>
+    </div>
+  </div></div>
+  <div class="cap">05 计划（Tab3）<span>　今天 / 即将到期 / 已逾期分组 · 一键完成</span></div>
+</div>
+
+<!-- ============ 06 鱼缸 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="topbar" style="justify-content:flex-end;">
+        <div class="iconbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></div>
+      </div>
+      <div class="cover">
+        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=living%20room%20planted%20aquascape%20aquarium%20on%20wooden%20cabinet%2C%20lush%20green%20plants%2C%20warm%20ambient%20light%2C%20realistic%20photo&image_size=landscape_4_3" alt="">
+        <div class="ov"><div class="n">客厅缸</div><div class="m">淡水草缸 · 50 升 · 设备在线</div></div>
+      </div>
+      <div class="facts">
+        <div class="fact"><div class="k"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c4 4.5 7 8 7 11.5a7 7 0 11-14 0C5 11 8 7.5 12 3z"/></svg>容量</div><div class="v">50 升</div></div>
+        <div class="fact"><div class="k"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 18c4-1 5-9 8-9s4 8 8 9"/><path d="M4 8c3 0 5 2 8 2s5-2 8-2"/></svg>类型</div><div class="v">淡水草缸</div></div>
+        <div class="fact"><div class="k"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>已运行</div><div class="v">63 天</div></div>
+        <div class="fact"><div class="k"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4"/></svg>建缸日期</div><div class="v">2026-07-14</div></div>
+      </div>
+      <div class="card"><h4>内容管理</h4>
+        <div class="quad" style="margin-bottom:0;">
+          <div class="qc"><div class="ic" style="background:#fdeaea;color:#d96060;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12c3-4 7-6 12-6 2.5 0 4.5.5 6 1.5L18 12l3 4.5c-1.5 1-3.5 1.5-6 1.5-5 0-9-2-12-6z"/></svg></div><div><div class="t">生物</div><div class="s">8 个种类</div></div><span class="ar">›</span></div>
+          <div class="qc"><div class="ic" style="background:#e6f4e6;color:#3f9d4e;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9M12 9C12 5 9 3 5 3c0 4 3 6 7 6zM12 13c0-3 2.5-5 6-5 0 3-2.5 5-6 5z"/></svg></div><div><div class="t">水草</div><div class="s">5 个种类</div></div><span class="ar">›</span></div>
+          <div class="qc"><div class="ic" style="background:#e8ecfa;color:#5b76d6;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 4v3M12 17v3M4 12h3M17 12h3M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2"/></svg></div><div><div class="t">设备</div><div class="s">共 4 台</div></div><span class="ar">›</span></div>
+          <div class="qc"><div class="ic" style="background:#fdf3e3;color:#d98c2d;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M10 21h4"/></svg></div><div><div class="t">提醒</div><div class="s">共 8 条</div></div><span class="ar">›</span></div>
+        </div>
+      </div>
+      <div class="rowitem">数据与导出<span class="sub2">PDF · CSV · 备份</span><span class="ar">›</span></div>
+      <div class="rowitem">提醒规则<span class="sub2">阈值 · 建议 · 免打扰</span><span class="ar">›</span></div>
+      <div class="rowitem">设备连接<span class="sub2">ws://192.168.3.190/ws · 在线</span><span class="ar">›</span></div>
+    </div>
+    <div class="nav">
+      <div class="it"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>概览</div>
+      <div class="it"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h13a3 3 0 013 3v13H7a3 3 0 01-3-3V4z"/><path d="M8 9h8M8 13h5"/></svg>日志</div>
+      <div class="it"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M8 14l3 3 5-5"/></svg>计划</div>
+      <div class="it on"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12c3-4 7-6 12-6 2.5 0 4.5.5 6 1.5L18 12l3 4.5c-1.5 1-3.5 1.5-6 1.5-5 0-9-2-12-6z"/><circle cx="16" cy="10.5" r="0.8" fill="currentColor"/></svg>鱼缸</div>
+    </div>
+  </div></div>
+  <div class="cap">06 鱼缸（Tab4）<span>　缸资料 / 生物·水草·设备·提醒 / 导出入口</span></div>
+</div>
+
+<!-- ============ 07 添加缸 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="subhead">
+        <div class="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5l-7 7 7 7"/></svg></div>
+        <div class="ti">添加鱼缸</div>
+      </div>
+      <div class="field"><div class="lb">缸名称</div><div class="inp"><span>阳台缸</span></div></div>
+      <div class="field"><div class="lb">位置</div><div class="inp"><span>阳台 · 南侧</span></div></div>
+      <div class="field"><div class="lb">容量（升）</div><div class="inp"><span>80</span></div></div>
+      <div class="field"><div class="lb">水型</div>
+        <div class="chips" style="margin:0;"><span class="chip on">淡水</span><span class="chip">海水</span><span class="chip">草缸</span></div>
+      </div>
+      <div class="field"><div class="lb">建缸日期</div><div class="inp"><span>2026-08-01</span></div></div>
+      <div class="card" style="margin-top:16px;"><h4>设备绑定</h4>
+        <div class="field" style="margin-bottom:10px;"><div class="lb">主板地址</div><div class="inp ok"><span>ws://192.168.3.190/ws</span><span class="okm">已连接 · 28ms</span></div></div>
+        <div class="field" style="margin-bottom:0;"><div class="lb">摄像头地址（可选）</div><div class="inp ok"><span>http://192.168.3.191</span><span class="okm">已识别</span></div></div>
+      </div>
+      <div class="btn-main">保存并创建</div>
+      <div class="note">每个缸独立绑定设备与提醒规则，数据互不影响；添加后可在顶部切换器中一键切换。</div>
+    </div>
+  </div></div>
+  <div class="cap">07 添加缸（二级页）<span>　多缸管理入口 / 设备绑定与连通测试</span></div>
+</div>
+
+<!-- ============ 08 提醒规则 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="subhead">
+        <div class="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5l-7 7 7 7"/></svg></div>
+        <div class="ti">提醒规则 · 客厅缸</div>
+      </div>
+      <div class="card"><h4>阈值告警（点按数值即可自定义）</h4>
+        <div class="rule"><div><div class="rt">水温</div><div class="rd"><span class="fld">24.0</span> ~ <span class="fld">28.0</span> ℃ · 持续 <span class="fld">3</span> 次</div></div><div class="sw on"></div></div>
+        <div class="rule"><div><div class="rt">pH</div><div class="rd"><span class="fld">6.4</span> ~ <span class="fld">7.6</span> · 持续 <span class="fld">3</span> 次</div></div><div class="sw on"></div></div>
+        <div class="rule"><div><div class="rt">TDS(滤前)</div><div class="rd">基线 <span class="fld">182</span> ± <span class="fld">30</span>%</div></div><div class="sw on"></div></div>
+        <div class="rule"><div><div class="rt">水位</div><div class="rd"><span class="fld">20</span> ~ <span class="fld">95</span> %</div></div><div class="sw on"></div></div>
+        <div class="rule"><div><div class="rt">ORP / 光照</div><div class="rd">未设置 · 点按新增阈值</div></div><div class="sw off"></div></div>
+      </div>
+      <div class="card"><h4>免打扰（时段与范围可自定义）</h4>
+        <div class="rule" style="margin-bottom:0;"><div><div class="rt"><span class="fld">23:00</span> ~ <span class="fld">07:00</span></div><div class="rd">仅静默 光照、水位 类 · 点按修改时段与范围</div></div><div class="sw on"></div></div>
+      </div>
+      <div class="card"><h4>操作建议（智能层，条件可自定义）</h4>
+        <div class="rule"><div><div class="rt">TDS 连续 <span class="fld">7</span> 天上升</div><div class="rd">建议换水 20~30%</div></div><div class="sw on"></div></div>
+        <div class="rule"><div><div class="rt">水位 <span class="fld">72</span>h 下降 &gt; <span class="fld">5</span>%</div><div class="rd">建议补水并检查渗漏</div></div><div class="sw on"></div></div>
+        <div class="rule" style="margin-bottom:0;"><div><div class="rt">加热棒连续运行 &gt; <span class="fld">80</span>% 上限</div><div class="rd">建议检查加热棒或保温</div></div><div class="sw off"></div></div>
+      </div>
+      <div class="note">所有阈值区间、持续次数、冷却时间、免打扰时段与静默范围均可点按自定义（编辑弹层见 16–17）；规则触发后进系统通知栏 + 概览横幅 + 提醒中心，恢复后自动消除并记日志。规则可导出 JSON 分享给其他缸。</div>
+    </div>
+  </div></div>
+  <div class="cap">08 提醒规则（二级页）<span>　阈值 / 免打扰 / 操作建议</span></div>
+</div>
+
+<div class="sec">B · 内容管理（M2）<span>09–10</span></div>
+
+<!-- ============ 09 生物列表 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="subhead">
+        <div class="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5l-7 7 7 7"/></svg></div>
+        <div class="ti">生物 · 客厅缸</div>
+        <div class="ri">+ 添加</div>
+      </div>
+      <div class="chips"><span class="chip on">全部 12</span><span class="chip">鱼类 5</span><span class="chip">虾 4</span><span class="chip">螺 2</span><span class="chip">其他 1</span></div>
+      <div class="lrow"><div class="av" style="background:#fdeaea;color:#d96060;">灯</div><div><div class="t">红绿灯鱼 × 30</div><div class="d">2026-07-20 入缸 · 状态良好 · 无异常记录</div></div><span class="ar">›</span></div>
+      <div class="lrow"><div class="av" style="background:#fdeaea;color:#d96060;">灯</div><div><div class="t">宝莲灯鱼 × 10</div><div class="d">2026-07-20 入缸 · 状态良好</div></div><span class="ar">›</span></div>
+      <div class="lrow"><div class="av" style="background:#fff4e0;color:#d98c2d;">虾</div><div><div class="t">黑壳虾 × 20</div><div class="d">2026-08-02 入缸 · 繁殖中 · 工具虾</div></div><span class="ar">›</span></div>
+      <div class="lrow"><div class="av" style="background:#fff4e0;color:#d98c2d;">虾</div><div><div class="t">极火虾 × 10</div><div class="d">2026-08-15 入缸 · 观赏虾</div></div><span class="ar">›</span></div>
+      <div class="lrow"><div class="av" style="background:#e8ecfa;color:#5b76d6;">鱼</div><div><div class="t">黄金胡子 × 2</div><div class="d">2026-07-14 入缸 · 底栖 · 除藻</div></div><span class="ar">›</span></div>
+      <div class="lrow"><div class="av" style="background:#e6f4e6;color:#3f9d4e;">螺</div><div><div class="t">苹果螺 × 4</div><div class="d">2026-08-10 入缸 · 除藻 · 控制数量</div></div><span class="ar">›</span></div>
+      <div class="note">生物增减自动写入养护日志；死亡或移出请用条目内的"减"操作，保留历史数量曲线。</div>
+    </div>
+  </div></div>
+  <div class="cap">09 生物列表<span>　分类统计 / 条目档案 / 增减记录（水草、提醒列表同构）</span></div>
+</div>
+
+<!-- ============ 10 设备列表 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="subhead">
+        <div class="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5l-7 7 7 7"/></svg></div>
+        <div class="ti">设备 · 客厅缸</div>
+        <div class="ri">+ 添加</div>
+      </div>
+      <div class="lrow"><div class="av" style="background:#fdeaea;color:#d96060;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v4M14 2v4M9 6h6l1 7a4 4 0 01-8 0l1-7z"/><path d="M12 17v5"/></svg></div>
+        <div><div class="t">加热棒 · 300W</div><div class="d">运行中 · 目标 26.0℃ · 2026-07-14 入缸</div></div><span class="ar">›</span></div>
+      <div class="lrow"><div class="av" style="background:#e8ecfa;color:#5b76d6;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16"/></svg></div>
+        <div><div class="t">滤桶过滤器</div><div class="d">运行 63 天 · 下次保养 09-17 · 滤前/滤后 TDS 182/185</div></div><span class="ar">›</span></div>
+      <div class="lrow"><div class="av" style="background:#fdf3e3;color:#d98c2d;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h4l3-7 3 14 3-7h3"/></svg></div>
+        <div><div class="t">全光谱水族灯</div><div class="d">定时 08:00–22:00 · 当前 停止 · 光照 4520 lx</div></div><span class="ar">›</span></div>
+      <div class="lrow"><div class="av" style="background:#e6f4e6;color:#3f9d4e;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></div>
+        <div><div class="t">CO2 电磁阀</div><div class="d">联动光照 · 当前 关闭 · 计数器 0.5 kg 剩余</div></div><span class="ar">›</span></div>
+      <div class="note">设备档案联动"计划"Tab 生成保养任务；执行器控制保留在 Web 仪表盘，App 端查看状态与档案。</div>
+    </div>
+  </div></div>
+  <div class="cap">10 设备列表<span>　设备档案 / 运行状态 / 保养联动计划</span></div>
+</div>
+
+<div class="sec">C · 数据与提醒（M2）<span>11–13</span></div>
+
+<!-- ============ 11 提醒中心 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="subhead">
+        <div class="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5l-7 7 7 7"/></svg></div>
+        <div class="ti">提醒中心</div>
+        <div class="ri">全部已读</div>
+      </div>
+      <div class="chips"><span class="chip on">全部</span><span class="chip">进行中 1</span><span class="chip">已恢复</span></div>
+
+      <div class="alertc warn">
+        <div class="h"><svg width="15" height="15" viewBox="0 0 24 24" fill="#e8912d"><path d="M12 2L1 21h22L12 2zm0 6l7 12H5l7-12zm-1 4v4h2v-4h-2zm0 5v2h2v-2h-2z"/></svg>水温接近上限<span class="tm">进行中 · 14:58</span></div>
+        <div class="m">客厅缸 · 28.2℃（上限 28.0℃）· 已持续 15 分钟<br>触发规则：水温 越上限 持续 3 次确认</div>
+        <div class="a">查看曲线 ›　·　去处理（写入日志）</div>
+      </div>
+
+      <div class="day">今天</div>
+      <div class="alertc">
+        <div class="h"><svg width="15" height="15" viewBox="0 0 24 24" fill="#2fa36b"><path d="M9 16.2l-3.5-3.5L4 14.2 9 19.2 20 8.2l-1.5-1.5z"/></svg>TDS(滤后) 偏高<span class="tm">10:12 触发 · 11:40 恢复</span></div>
+        <div class="m">187 ppm（超基线 +30%）· 持续 88 分钟<br>附建议：滤前 182 / 滤后 187 差值缩小，建议检查滤芯衰减</div>
+      </div>
+
+      <div class="day">昨天</div>
+      <div class="alertc">
+        <div class="h"><svg width="15" height="15" viewBox="0 0 24 24" fill="#2fa36b"><path d="M9 16.2l-3.5-3.5L4 14.2 9 19.2 20 8.2l-1.5-1.5z"/></svg>水位低于下限<span class="tm">19:02 触发 · 19:35 恢复</span></div>
+        <div class="m">18%（下限 20%）· 持续 33 分钟 · 恢复原因：手动补水</div>
+      </div>
+
+      <div class="day">09-12</div>
+      <div class="alertc">
+        <div class="h"><svg width="15" height="15" viewBox="0 0 24 24" fill="#2fa36b"><path d="M9 16.2l-3.5-3.5L4 14.2 9 19.2 20 8.2l-1.5-1.5z"/></svg>摄像头离线<span class="tm">21:07 触发 · 21:29 恢复</span></div>
+        <div class="m">设备失联 22 分钟 · 恢复原因：自动重连成功</div>
+      </div>
+
+      <div class="note">同规则 30 分钟冷却 · 免打扰 23:00–07:00（水质类除外）· 已恢复条目自动写入养护日志。</div>
+    </div>
+  </div></div>
+  <div class="cap">11 提醒中心<span>　进行中 / 已恢复 / 触发详情与建议 / 一键处理</span></div>
+</div>
+
+<!-- ============ 12 数据与导出 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="subhead">
+        <div class="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5l-7 7 7 7"/></svg></div>
+        <div class="ti">数据与导出</div>
+      </div>
+      <div class="card" style="background:linear-gradient(135deg,#0e9f8c,#0b7f70); border:none; color:#fff;">
+        <div style="font-size:15px; font-weight:800;">让记录更安全</div>
+        <div style="font-size:12px; opacity:.85; margin-top:4px;">备份现有记录、换机或重装后也能恢复</div>
+      </div>
+      <div class="field"><div class="lb">时间范围</div>
+        <div class="chips" style="margin:0;"><span class="chip">近 7 天</span><span class="chip on">近 30 天</span><span class="chip">近 1 年</span><span class="chip">自定义</span></div>
+      </div>
+      <div class="rowitem" style="margin-top:6px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e05252" stroke-width="2"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/></svg>生成 PDF 报告<span class="sub2">可打印的鱼缸报告</span><span class="ar">›</span></div>
+      <div class="rowitem"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2fa36b" stroke-width="2"><path d="M4 4h16v4H4zM4 12h16v8H4z"/></svg>导出 CSV<span class="sub2">读数打包 ZIP · 与 PC 上位机同格式</span><span class="ar">›</span></div>
+      <div class="rowitem"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#5b76d6" stroke-width="2"><path d="M4 12a8 8 0 0114-5l2 2M20 12a8 8 0 01-14 5l-2-2"/><path d="M20 4v5h-5M4 20v-5h5"/></svg>备份与恢复<span class="sub2">本地完整备份 · 一键恢复</span><span class="ar">›</span></div>
+      <div class="note">PDF 报告含趋势图 + 统计 + 养护日志摘要；备份包内容：缸档案、生物/设备清单、日志、计划与提醒规则。</div>
+    </div>
+  </div></div>
+  <div class="cap">12 数据与导出<span>　PDF / CSV / 备份恢复（对齐范例图 4）</span></div>
+</div>
+
+<!-- ============ 13 摄像头全屏 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar wt"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="fscam">
+      <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=freshwater%20planted%20aquarium%20underwater%20view%2C%20lush%20green%20aquatic%20plants%2C%20driftwood%2C%20small%20schooling%20tetra%20fish%2C%20clear%20water%2C%20soft%20natural%20lighting%2C%20realistic%20photo&image_size=portrait_4_3" alt="">
+      <div class="top">
+        <div class="gbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M15 5l-7 7 7 7"/></svg></div>
+        <div class="ti">客厅缸 · 实时画面</div>
+      </div>
+      <div class="bot">
+        <div class="gbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M8 7l1.5-3h5L16 7"/></svg>拍照存入日志</div>
+        <div class="gbtn" style="background:rgba(255,255,255,.22);">重新连接</div>
+      </div>
+    </div>
+    <div style="position:absolute; right:14px; top:40px; z-index:4;" class="gbtn"><span class="dot"></span>MJPEG · 640×480</div>
+  </div></div>
+  <div class="cap">13 摄像头全屏<span>　竖屏全屏流 / 快照写入日志 / 断流重连（摄像头支持 3 客户端并发）</span></div>
+</div>
+
+<div class="sec">D · 全局与云端（M3 界面预留）<span>14–15</span></div>
+
+<!-- ============ 14 缸切换器展开 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll" style="filter:none;">
+      <div class="topbar">
+        <div class="tankpick" style="border-color:var(--teal); color:var(--teal-d);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C7 3 3 8 3 12s4 9 9 9 9-5 9-9-4-9-9-9zm4 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z"/></svg>
+          客厅缸 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 15l6-6 6 6"/></svg>
+        </div>
+        <div class="iconbtn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M10 21h4"/></svg></div>
+      </div>
+      <div class="sk" style="width:70%;"></div>
+      <div class="sk"></div>
+      <div class="sk" style="height:120px;"></div>
+      <div class="sk"></div>
+      <div class="sk" style="width:85%;"></div>
+      <div class="sk"></div>
+    </div>
+    <div class="backdrop"></div>
+    <div class="sheet">
+      <div class="sh">我的鱼缸 · 2</div>
+      <div class="tk on"><div class="av">客</div><div><div class="t">客厅缸</div><div class="d">淡水草缸 · 50L · 在线 · 告警 1</div></div><span class="ck">✓</span></div>
+      <div class="tk off"><div class="av">阳</div><div><div class="t">阳台缸</div><div class="d">淡水 · 80L · 离线（连接失败）</div></div></div>
+      <div style="height:1px; background:var(--line); margin:6px 4px;"></div>
+      <div class="tk" style="color:var(--teal-d); font-weight:700; font-size:13.5px;"><div class="av" style="background:var(--teal-l); color:var(--teal-d); font-size:18px;">+</div>添加新缸</div>
+      <div class="tk" style="font-size:13.5px; color:var(--muted);"><div class="av" style="background:var(--bg); color:var(--muted);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h16M4 12h16M4 16h10"/></svg></div>管理缸（排序 / 归档）</div>
+    </div>
+  </div></div>
+  <div class="cap">14 缸切换器展开<span>　多缸列表 / 在线状态与告警数 / 添加与管理入口</span></div>
+</div>
+
+<!-- ============ 15 设置 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="subhead">
+        <div class="back"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5l-7 7 7 7"/></svg></div>
+        <div class="ti">设置</div>
+      </div>
+      <div class="card"><h4>账号与云同步<span class="m3">M3</span></h4>
+        <div class="rule" style="margin-bottom:8px;"><div><div class="rt">登录</div><div class="rd">未登录 · 登录后启用多设备同步</div></div><span class="ar" style="color:#b9d2cd;">›</span></div>
+        <div class="rule" style="margin-bottom:8px;"><div><div class="rt">云同步</div><div class="rd">预留 · M3 上线后自动启用</div></div><div class="sw off"></div></div>
+        <div class="rule" style="margin-bottom:0;"><div><div class="rt">推送通道</div><div class="rd">预留 · 厂商离线推送（小米/华为/荣耀）</div></div><div class="sw off"></div></div>
+      </div>
+      <div class="card"><h4>提醒</h4>
+        <div class="rule" style="margin-bottom:8px;"><div><div class="rt">系统通知</div><div class="rd">已允许 · 悬浮通知已开启</div></div><div class="sw on"></div></div>
+        <div class="rule" style="margin-bottom:0;"><div><div class="rt">免打扰</div><div class="rd">跟随各缸提醒规则</div></div><span class="ar" style="color:#b9d2cd;">›</span></div>
+      </div>
+      <div class="card"><h4>通用</h4>
+        <div class="rule" style="margin-bottom:8px;"><div><div class="rt">外观</div><div class="rd">跟随系统</div></div><span class="ar" style="color:#b9d2cd;">›</span></div>
+        <div class="rule" style="margin-bottom:0;"><div><div class="rt">语言</div><div class="rd">简体中文</div></div><span class="ar" style="color:#b9d2cd;">›</span></div>
+      </div>
+      <div class="card"><h4>关于</h4>
+        <div class="rule" style="margin-bottom:8px;"><div><div class="rt">版本</div><div class="rd">0.1.0 · M1</div></div><span class="ar" style="color:#b9d2cd;">›</span></div>
+        <div class="rule" style="margin-bottom:0;"><div><div class="rt">设备兼容性说明</div><div class="rd">Web 控制台 / PC 上位机使用指引</div></div><span class="ar" style="color:#b9d2cd;">›</span></div>
+      </div>
+    </div>
+  </div></div>
+  <div class="cap">15 设置<span>　M3 云能力界面预留 / 通知与通用项</span></div>
+</div>
+
+<div class="sec">E · 规则自定义弹层（M1）<span>16–17</span></div>
+
+<!-- ============ 16 编辑阈值 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="sk" style="width:60%;"></div>
+      <div class="sk"></div>
+      <div class="sk"></div>
+      <div class="sk" style="height:120px;"></div>
+      <div class="sk"></div>
+      <div class="sk" style="width:80%;"></div>
+    </div>
+    <div class="backdrop"></div>
+    <div class="sheet" style="top:120px;">
+      <div class="handle"></div>
+      <div style="display:flex; align-items:center; margin-bottom:12px;">
+        <div class="stitle">编辑阈值 · 水温 <span style="font-weight:500; font-size:11.5px; color:var(--muted);">客厅缸</span></div>
+        <div class="xbtn">✕</div>
+      </div>
+      <div class="chips" style="margin-bottom:12px;"><span class="chip on">固定区间</span><span class="chip">基线 ± 百分比</span></div>
+      <div class="f2">
+        <div class="fx"><div class="k">下限（低于触发）</div><div class="v">24.0 ℃</div></div>
+        <div class="fx"><div class="k">上限（高于触发）</div><div class="v">28.0 ℃</div></div>
+        <div class="fx"><div class="k">持续确认次数</div><div class="v">3 次</div></div>
+        <div class="fx"><div class="k">同规则冷却</div><div class="v">30 分钟</div></div>
+      </div>
+      <div class="note" style="margin:0 0 12px;">点按数值弹出数字键盘修改；上限必须大于下限；TDS 类指标可切换"基线 ± 百分比"模式，基线自动取近 7 天中位数。</div>
+      <div style="display:flex; gap:8px;">
+        <div class="btn-main" style="flex:1; background:var(--bg); color:var(--muted); border:1px solid var(--line);">恢复默认</div>
+        <div class="btn-main" style="flex:2;">保存规则</div>
+      </div>
+    </div>
+  </div></div>
+  <div class="cap">16 编辑阈值（底部弹层）<span>　区间 / 持续 / 冷却全可自定义 · 固定区间与基线双模式</span></div>
+</div>
+
+<!-- ============ 17 免打扰自定义 ============ -->
+<div class="frame">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="scroll">
+      <div class="sk" style="width:60%;"></div>
+      <div class="sk"></div>
+      <div class="sk" style="height:120px;"></div>
+      <div class="sk"></div>
+      <div class="sk" style="width:75%;"></div>
+    </div>
+    <div class="backdrop"></div>
+    <div class="sheet" style="top:130px;">
+      <div class="handle"></div>
+      <div style="display:flex; align-items:center; margin-bottom:12px;">
+        <div class="stitle">免打扰时段 · 客厅缸</div>
+        <div class="xbtn">✕</div>
+      </div>
+      <div class="rule" style="margin-bottom:12px;"><div><div class="rt">启用免打扰</div><div class="rd">关闭后全天候即时提醒</div></div><div class="sw on"></div></div>
+      <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:8px;">
+        <div style="text-align:center;"><div class="k" style="font-size:10.5px; color:var(--muted); font-weight:600; margin-bottom:4px;">开始</div><span class="fld lg">23:00</span></div>
+        <div style="color:var(--muted); font-weight:700; margin-top:22px;">~</div>
+        <div style="text-align:center;"><div class="k" style="font-size:10.5px; color:var(--muted); font-weight:600; margin-bottom:4px;">结束</div><span class="fld lg">07:00</span></div>
+      </div>
+      <div class="note" style="margin:0 0 12px;">点按弹出时间选择器；结束时间早于开始时间时自动按跨天计算（23:00 → 次日 07:00）。</div>
+      <div class="field" style="margin-bottom:10px;"><div class="lb">静默范围</div>
+        <div class="chips" style="margin:0;"><span class="chip on">光照</span><span class="chip on">水位</span><span class="chip">水质类（保持提醒）</span><span class="chip">设备离线</span></div>
+      </div>
+      <div class="btn-main">保存时段</div>
+      <div class="note">水质类告警不受免打扰限制——夜间水质异常仍会即时通知；改动对所有相关规则立即生效。</div>
+    </div>
+  </div></div>
+  <div class="cap">17 免打扰自定义（底部弹层）<span>　起止时段 / 跨天 / 静默范围可勾选</span></div>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,78 @@
+name: iaquaria
+description: "iAquaria - 水族缸智能管理中枢（集美大学）。一套代码同时构建 Android 与 HarmonyOS Next。"
+publish_to: "none"
+version: 0.1.0+6
+
+environment:
+  # OpenHarmony SIG 版 Flutter（3.22.1-ohos 分支，Dart 3.4；修复鸿蒙输入框无法删除/选择问题）
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  mqtt_client: 10.3.0  # 云查看（EMQX Serverless wss 订阅）；10.3.x 为鸿蒙兼容锁定版本
+
+  # ── 网络请求：dio 为纯 Dart 实现，鸿蒙 Next 无需原生适配（Dart 2.19 锁 5.4.x）──
+  dio: 5.4.3+1
+
+  # ── 图表：fl_chart 纯 Dart（CustomPainter 渲染），双平台通用（Dart 2.19 锁 0.55.x）──
+  fl_chart: 0.55.2
+
+  # ── 本地存储：保存缸档案 / 日志 / 任务 / 提醒规则 / API 密钥（禁止硬编码）──
+  #    版本 2.2.0 与 SIG OHOS 适配分支配套（见下方 dependency_overrides）
+  shared_preferences: 2.2.0
+
+  # ── 文件目录：日志/数据导出为 CSV 文件（写入应用文档目录）──
+  path_provider: 2.1.4
+
+  # ── 导出另存为：系统对话框自选保存目录与命名（默认 Documents）──
+  #    file_picker 8.0.6 自带 Android/Windows 实现；鸿蒙走 SIG 适配 file_picker_ohos
+  #    （saveFile 仅返回所选路径，App 端自行补写内容，见 journal_page._writeCsv）
+  file_picker: 8.0.6
+  file_picker_ohos: 1.0.1
+
+  cupertino_icons: 1.0.6
+
+  # ── 手机相机：人工缸/无监控摄像头时，调系统相机拍照供 AI 识图识别 ──
+  #    通过系统相机 Intent 拍照（无需 CAMERA 权限）；鸿蒙无平台实现，调用时捕获提示
+  image_picker: 1.1.2
+
+# ── OpenHarmony 适配：shared_preferences 伞包 + ohos 平台实现 ──
+#    上游官方包无 ohos 实现，鸿蒙上会抛 MissingPluginException 导致
+#    缸档案/日志/密钥全部无法持久化。v2.3.2 ohos 分支（openharmony-tpc）
+#    与 Flutter 3.22.0-ohos SDK 配套。
+dependency_overrides:
+  # file_picker_ohos 遗留声明 win32 ^4.x（ohos 实现不使用 win32），与
+  # file_picker 8.0.6 的 win32 ^5.5 冲突，强制统一到 5.5.1
+  win32: 5.5.1
+  shared_preferences:
+    git:
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/shared_preferences/shared_preferences
+      ref: br_shared_preferences-v2.3.2_ohos
+  shared_preferences_ohos:
+    git:
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/shared_preferences/shared_preferences_ohos
+      ref: br_shared_preferences-v2.3.2_ohos
+  path_provider:
+    git:
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/path_provider/path_provider
+      ref: br_path_provider-v2.1.4_ohos
+  path_provider_ohos:
+    git:
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/path_provider/path_provider_ohos
+      ref: br_path_provider-v2.1.4_ohos
+
+# 说明：OpenAI 协议 LLM 客户端自实现 SSE 流式客户端（lib/services/llm_service.dart），
+# 协议与 openai_dart 完全兼容（DeepSeek / 通义千问 / GLM / 豆包），支持流式输出与多模态识图。
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true

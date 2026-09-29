@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>iAqua 水族缸智能系统</title>
+<style>
+:root{--bg:#0e141b;--card:#161d27;--line:#232d3a;--tx:#dbe4ee;--dim:#7d8b9c;--ac:#2dd4bf;--warn:#f59e0b;--bad:#ef4444;--ok:#22c55e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;padding:12px;max-width:760px;margin:0 auto}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 2px 14px}
+header h1{font-size:19px;font-weight:700;color:var(--ac)}
+.badge{font-size:12px;padding:2px 9px;border-radius:10px;border:1px solid var(--line);color:var(--dim)}
+.badge.on{color:var(--ok);border-color:var(--ok)}
+.badge.warn{color:var(--warn);border-color:var(--warn)}
+.badge.bad{color:var(--bad);border-color:var(--bad)}
+#hdrSys{margin-left:auto;font-size:12px;color:var(--dim)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.card .k{font-size:12px;color:var(--dim)}
+.card .v{font-size:26px;font-weight:700;margin-top:2px}
+.card .u{font-size:13px;color:var(--dim);font-weight:400}
+.card .s{font-size:11px;color:var(--dim);margin-top:2px}
+.card.stale .v{color:var(--dim)}
+.bar{height:6px;background:var(--line);border-radius:3px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ac);border-radius:3px;transition:width .6s}
+h2{font-size:14px;color:var(--dim);margin:18px 2px 8px;font-weight:600;letter-spacing:.05em}
+.actrow{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:8px}
+.actrow .nm{font-weight:600;width:64px}
+.actrow .st{font-size:12px;color:var(--dim);flex:1}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:none;border:0;color:var(--dim);padding:6px 13px;cursor:pointer;font-size:13px}
+.seg button.sel{background:var(--ac);color:#04211c;font-weight:700}
+button.pri{background:var(--ac);color:#04211c;border:0;border-radius:8px;padding:8px 18px;font-weight:700;cursor:pointer;font-size:14px}
+button.sec{background:none;border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px}
+fieldset{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+legend{font-size:13px;color:var(--ac);padding:0 6px;font-weight:600}
+.frow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
+.frow label{font-size:13px;color:var(--dim);min-width:84px}
+.frow input,.frow select{background:#0e141b;border:1px solid var(--line);color:var(--tx);border-radius:7px;padding:6px 9px;font-size:14px;width:120px}
+.frow input[type=checkbox]{width:18px;height:18px}
+.frow input.w2{width:180px}
+.save{margin-top:8px;text-align:right}
+#logBox{background:#0a0f14;border:1px solid var(--line);border-radius:10px;padding:10px;font:12px/1.45 Consolas,monospace;color:#9fb3c8;max-height:260px;overflow:auto;white-space:pre-wrap;margin-top:8px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1f2a37;border:1px solid var(--ac);color:var(--tx);padding:9px 18px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9}
+.toast.show{opacity:1}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>iAqua</h1>
+  <span class="badge" id="bWs">连接中…</span>
+  <span class="badge" id="bNet">网络</span>
+  <span class="badge" id="bTime">时间</span>
+  <span id="hdrSys">—</span>
+</header>
+
+<div class="grid" id="grid">
+  <div class="card"><div class="k">水温</div><div class="v"><span id="vTemp">--</span><span class="u"> ℃</span></div><div class="s" id="sTemp"></div></div>
+  <div class="card"><div class="k">pH</div><div class="v"><span id="vPh">--</span></div><div class="s" id="sPh"></div></div>
+  <div class="card"><div class="k">ORP</div><div class="v"><span id="vOrp">--</span><span class="u"> mV</span></div><div class="s" id="sOrp"></div></div>
+  <div class="card"><div class="k">TDS(滤前)</div><div class="v"><span id="vT1">--</span><span class="u"> ppm</span></div><div class="s" id="sT1"></div></div>
+  <div class="card"><div class="k">TDS(滤后)</div><div class="v"><span id="vT2">--</span><span class="u"> ppm</span></div><div class="s" id="sT2"></div></div>
+  <div class="card"><div class="k">光照度</div><div class="v"><span id="vLux">--</span><span class="u"> lx</span></div><div class="s" id="sLux"></div></div>
+  <div class="card"><div class="k">水位</div><div class="v"><span id="vLvl">--</span><span class="u"> %</span></div><div class="bar"><i id="barLvl" style="width:0%"></i></div><div class="s" id="sLvl"></div></div>
+</div>
+
+<h2>实时画面 <span style="font-weight:400" id="camHint"></span></h2>
+<div class="card" style="padding:8px">
+  <img id="camImg" style="width:100%;border-radius:8px;display:none;background:#000" alt="">
+  <div id="camNone" style="color:var(--dim);font-size:13px;padding:6px 2px">未配置摄像头（在下方参数配置里填写地址）</div>
+</div>
+
+<h2>历史趋势 <span style="font-weight:400" id="histHint"></span></h2>
+<div class="card" style="padding:10px">
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+    <button class="sec hsel" data-h="24">24小时</button>
+    <button class="sec hsel" data-h="168">7天</button>
+    <button class="sec hsel" data-h="720">30天</button>
+    <button class="sec hsel" data-h="8760">1年</button>
+    <span id="histAgg" style="font-size:11px;color:var(--dim);align-self:center;margin-left:auto"></span>
+  </div>
+  <div id="histLegend" style="display:flex;flex-wrap:wrap;gap:6px;font-size:12px"></div>
+  <canvas id="histCv" height="260" style="width:100%;margin-top:6px;touch-action:pan-y"></canvas>
+</div>
+
+<h2>设备控制 <span style="font-weight:400">（点「开/关」为手动接管，点「自动」交还策略）</span></h2>
+<div id="acts"></div>
+<button class="pri" id="btnFeed">投喂一次</button>
+<button class="sec" id="btnLog">运行日志</button>
+<div id="logBox" class="hide"></div>
+
+<h2>参数配置</h2>
+<fieldset><legend>加热棒</legend>
+  <div class="frow"><label>目标温度 ℃</label><input data-path="ctrl.heater.sp_c" type="number" step="0.1"></div>
+  <div class="frow"><label>回差 ℃</label><input data-path="ctrl.heater.hyst_c" type="number" step="0.1"></div>
+  <div class="frow"><label>连续运行上限</label><input data-path="ctrl.heater.max_on_min" type="number" step="1"> 分钟</div>
+  <div class="save"><button class="sec sv">保存</button></div>
+</fieldset>
+
+<fieldset><legend>CO2 补气</legend>
+  <div class="frow"><label>pH 开阀阈值</label><input data-path="ctrl.co2.ph_on" type="number" step="0.01"></div>
+  <div class="frow"><label>pH 关阀阈值</label><input data-path="ctrl.co2.ph_off" type="number" step="0.01"></div>
+  <div class="frow"><label>随灯联动</label><input data-path="ctrl.co2.follow_light" type="checkbox"></div>
+  <div class="frow"><label>连续运行上限</label><input data-path="ctrl.co2.max_on_min" type="number" step="1"> 分钟</div>
+  <div class="save"><button class="sec sv">保存</button></div>
+</fieldset>
+
+<fieldset><legend>灯光控制</legend>
+  <div class="frow"><label>控制模式</label><select data-path="ctrl.light.mode">
+    <option value="time">定时</option><option value="lux">光强联动</option></select></div>
+  <div class="frow"><label>开灯时间</label><input data-path="ctrl.light.on" type="time"></div>
+  <div class="frow"><label>关灯时间</label><input data-path="ctrl.light.off" type="time"></div>
+  <div class="frow"><label>开灯光照 ≤ lx</label><input data-path="ctrl.light.lux_on" type="number" step="1"></div>
+  <div class="frow"><label>关灯光照 ≥ lx</label><input data-path="ctrl.light.lux_off" type="number" step="1"></div>
+  <div class="save"><button class="sec sv">保存</button></div>
+</fieldset>
+
+<fieldset><legend>水位标定（超声波距离 mm）</legend>
+  <div class="frow"><label>0% 距离</label><input data-path="ctrl.level.mm_empty" type="number" step="1"></div>
+  <div class="frow"><label>100% 距离</label><input data-path="ctrl.level.mm_full" type="number" step="1"></div>
+  <div class="frow"><label>高水位告警 %</label><input data-path="ctrl.level.warn_hi" type="number" step="1"></div>
+  <div class="frow"><label>低水位告警 %</label><input data-path="ctrl.level.warn_lo" type="number" step="1"></div>
+  <div class="save"><button class="sec sv">保存</button></div>
+</fieldset>
+
+<fieldset><legend>RS485 从机（地址 / 寄存器映射，探测后修正）</legend>
+  <div class="frow"><label>TDS 地址</label><input data-path="regs.tds.addr" type="number" min="1" max="247" style="width:70px">
+    <label>功能码</label><input data-path="regs.tds.fc" type="number" min="3" max="4" style="width:70px"></div>
+  <div class="frow"><label>ch1 寄存器</label><input data-path="regs.tds.map.ch1.reg" type="number" style="width:90px">
+    <label>系数</label><input data-path="regs.tds.map.ch1.scale" type="number" step="0.001" style="width:90px"></div>
+  <div class="frow"><label>ch2 寄存器</label><input data-path="regs.tds.map.ch2.reg" type="number" style="width:90px">
+    <label>系数</label><input data-path="regs.tds.map.ch2.scale" type="number" step="0.001" style="width:90px"></div>
+  <div class="frow"><label>pH 地址</label><input data-path="regs.ph.addr" type="number" min="1" max="247" style="width:70px">
+    <label>功能码</label><input data-path="regs.ph.fc" type="number" min="3" max="4" style="width:70px"></div>
+  <div class="frow"><label>temp 寄存器</label><input data-path="regs.ph.map.temp.reg" type="number" style="width:90px">
+    <label>系数</label><input data-path="regs.ph.map.temp.scale" type="number" step="0.001" style="width:90px"></div>
+  <div class="frow"><label>ph 寄存器</label><input data-path="regs.ph.map.ph.reg" type="number" style="width:90px">
+    <label>系数</label><input data-path="regs.ph.map.ph.scale" type="number" step="0.001" style="width:90px"></div>
+  <div class="frow"><label>orp 寄存器</label><input data-path="regs.ph.map.orp.reg" type="number" style="width:90px">
+    <label>系数</label><input data-path="regs.ph.map.orp.scale" type="number" step="0.001" style="width:90px"></div>
+  <div class="save"><button class="sec sv">保存 485 设置</button></div>
+</fieldset>
+
+<fieldset><legend>摄像头（ESP32-CAM 节点）</legend>
+  <div class="frow"><label>基地址</label><input data-path="cam.url" class="w2" placeholder="http://iaqua-cam.local"></div>
+  <div class="frow" style="font-size:12px;color:var(--dim)">视频流 = 基地址:81/stream，快照 = 基地址/capture</div>
+  <div class="save"><button class="sec sv">保存</button></div>
+</fieldset>
+
+<fieldset><legend>系统</legend>
+  <div class="frow"><label>遥测间隔</label><input data-path="telemetry_ms" type="number" step="100"> ms</div>
+  <div class="save"><button class="sec sv">保存</button></div>
+</fieldset>
+
+<fieldset><legend>WiFi</legend>
+  <div class="frow"><label>SSID</label><input id="wfSsid" class="w2" placeholder="WiFi 名称"></div>
+  <div class="frow"><label>密码</label><input id="wfPass" class="w2" type="password" placeholder="留空则不修改"></div>
+  <div class="frow"><button class="sec" id="btnWifi">保存并重启生效</button>
+    <button class="sec" id="btnReboot">重启设备</button></div>
+</fieldset>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+let ws=null,rev=0,sendQ=[],busy=false;
+const CH=["co2","feed","light","heater","pump"];
+const CHN={co2:"CO2 电磁阀",feed:"喂食器",light:"水族灯",heater:"加热棒",pump:"补水泵"};
+const act={},man={};
+
+/* ---------- WebSocket ---------- */
+function connect(){
+  const proto=location.protocol==="https:"?"wss":"ws";
+  ws=new WebSocket(proto+"://"+location.host+"/ws");
+  ws.onopen=()=>{ $("bWs").textContent="已连接"; $("bWs").className="badge on"; loadHist(); };
+  ws.onclose=()=>{ $("bWs").textContent="已断开"; $("bWs").className="badge bad"; setTimeout(connect,2000); };
+  ws.onerror=()=>ws.close();
+  ws.onmessage=e=>{
+    let m; try{ m=JSON.parse(e.data);}catch(_){return;}
+    if(m.ev==="hello"){ rev=m.rev; }
+    else if(m.ev==="tel"){ rev=m.d.rev; renderTel(m.d); }
+    else if(m.ev==="cfg"){ fillCfg(m.cfg); }
+    else if(m.ev==="hist"){ histData=m; $("histHint").textContent=""; renderHistLegend(); drawHist(); }
+    else if(m.ev==="ack"){ onAck(m); }
+    else if(m.ev==="log"){ renderLog(m.rows); }
+  };
+}
+
+function send(o){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(o)); else toast("未连接"); }
+
+/* ---------- 遥测渲染 ---------- */
+function age(s){ if(!s) return ""; const a=Math.floor(Date.now()/1000)%100000; return ""; }
+function setMetric(id,sid,v,u,stale){
+  const c=$(id).closest(".card");
+  if(v===undefined||v===null){ $(id).textContent="--"; c.classList.add("stale"); if(sid)$(sid).textContent="无数据"; }
+  else{ $(id).textContent=v; c.classList.remove("stale"); if(sid)$(sid).textContent=""; }
+}
+function renderTel(d){
+  setMetric("vTemp",null,d.temp); setMetric("vPh",null,d.ph);
+  setMetric("vOrp",null,d.orp);
+  setMetric("vT1",null,d.tds1);   setMetric("vT2",null,d.tds2);
+  setMetric("vLux",null,d.lux);
+  if(d.lux!==undefined&&d.lux!==null) $("sLux").textContent=d.lux>=40000?"☀ 强光（可能封顶）":d.lux<10?"🌙 黑暗":"";
+  $("vLvl").textContent=(d.lvl!==undefined&&d.lvl!==null)?d.lvl:"--";
+  $("barLvl").style.width=(d.lvl||0)+"%";
+  $("sLvl").textContent=d.lvlmm!==undefined?("距离 "+d.lvlmm+" mm"):"";
+  if(d.lvl!==undefined&&d.lvl!==null){
+    $("sLvl").textContent=(d.lvlmm!==undefined?("距离 "+d.lvlmm+" mm · "):"")+
+      (d.lvl>=95?"⚠ 高水位":d.lvl<=20?"⚠ 低水位":"");
+  }
+  $("bNet").textContent=d.ap?"AP 配网":(d.wifi?"WiFi "+d.rssi+"dBm":"离线");
+  $("bNet").className="badge "+(d.ap?"warn":(d.wifi?"on":"bad"));
+  $("bTime").textContent=d.time?"时间已同步":"未校时";
+  $("bTime").className="badge "+(d.time?"on":"warn");
+  const up=d.up,txt=up>=86400?Math.floor(up/86400)+"天"+Math.floor(up%86400/3600)+"时":
+          up>=3600?Math.floor(up/3600)+"时"+Math.floor(up%3600/60)+"分":Math.floor(up/60)+"分";
+  $("hdrSys").textContent="运行 "+txt+" · 内存 "+Math.round(d.heap/1024)+"KB";
+  for(let i=0;i<CH.length;i++){ act[CH[i]]=d.act[i]; man[CH[i]]=d.man[i]; }
+  renderActs();
+}
+function renderActs(){
+  const box=$("acts");
+  if(!box.dataset.built){
+    box.dataset.built=1;
+    for(const c of CH){ if(c==="feed")continue;
+      const r=document.createElement("div"); r.className="actrow";
+      r.innerHTML=`<span class="nm">${CHN[c]}</span><span class="st" id="st_${c}"></span>
+        <span class="seg"><button data-c="${c}" data-m="auto">自动</button>
+        <button data-c="${c}" data-v="1">开</button><button data-c="${c}" data-v="0">关</button></span>`;
+      box.appendChild(r);
+    }
+    box.onclick=e=>{ const b=e.target.closest("button"); if(!b)return;
+      if(b.dataset.m==="auto") send({cmd:"ctrl",ch:b.dataset.c,mode:"auto"});
+      else send({cmd:"ctrl",ch:b.dataset.c,on:b.dataset.v==="1"});
+    };
+  }
+  for(const c of CH){ if(c==="feed")continue;
+    const st=$("st_"+c); if(!st)continue;
+    st.textContent=act[c]?(man[c]?"手动·开":"自动·开"):(man[c]?"手动·关":"自动·关");
+    const seg=st.nextElementSibling;
+    seg.querySelectorAll("button").forEach(b=>{
+      b.classList.toggle("sel", b.dataset.m==="auto"?!man[c]:(man[c]&&act[c]===(b.dataset.v==="1")));
+    });
+  }
+}
+
+/* ---------- 配置渲染与保存 ---------- */
+function fillCfg(cfg){
+  document.querySelectorAll("[data-path]").forEach(el=>{
+    let v=cfg; for(const k of el.dataset.path.split(".")){ v=v?.[k]; }
+    if(v===undefined)return;
+    if(el.type==="checkbox") el.checked=!!v; else el.value=v;
+  });
+  if(!$("wfSsid").value && cfg.wifi?.ssid) $("wfSsid").value=cfg.wifi.ssid;
+  applyCam(cfg.cam?.url);
+}
+/* ---------- 摄像头画面 ---------- */
+let camPollT=0;
+function applyCam(base){
+  base=(base||"").trim().replace(/\/+$/,"");
+  const img=$("camImg"),none=$("camNone"),hint=$("camHint");
+  if(camPollT){ clearInterval(camPollT); camPollT=0; }
+  if(!base){ img.style.display="none"; none.style.display="block"; hint.textContent=""; img.removeAttribute("data-src"); return; }
+  none.style.display="none"; img.style.display="block";
+  if(img.dataset.src===base)return;          // 地址未变，不打断当前流
+  img.dataset.src=base;
+  let fails=0;
+  img.onerror=()=>{                          // 流不可用（单客户端占满/浏览器不支持MJPEG）→ 降级为快照轮询
+    if(camPollT)return;
+    hint.textContent="视频流不可用，已切换快照模式";
+    camPollT=setInterval(()=>{
+      img.onerror=()=>{ if(++fails>=3) hint.textContent="摄像头离线，重试中…"; };
+      img.onload=()=>{ fails=0; hint.textContent=""; };
+      img.src=base+"/capture?"+Date.now();
+    },700);
+  };
+  img.onload=()=>{ hint.textContent=""; };
+  img.src=base+":81/stream?"+Date.now();
+}
+function collect(root){
+  const sets=[];
+  root.querySelectorAll("[data-path]").forEach(el=>{
+    let v; if(el.type==="checkbox") v=el.checked;
+    else if(el.type==="number") v=parseFloat(el.value);
+    else v=el.value;
+    if(typeof v==="number"&&isNaN(v))return;
+    sets.push({path:el.dataset.path,value:v});
+  });
+  return sets;
+}
+document.querySelectorAll("fieldset").forEach(fs=>{
+  const b=fs.querySelector(".sv"); if(!b)return;
+  b.onclick=()=>{ const sets=collect(fs); if(!sets.length)return;
+    send({cmd:"cfg.setMany",sets,rev}); toast("保存中…"); };
+});
+function onAck(m){
+  if(!m.ok){ toast("失败: "+(m.msg||"?")); return; }
+  if(m.msg) toast(m.msg);
+}
+
+$("btnFeed").onclick=()=>{ send({cmd:"feed"}); toast("已投喂"); };
+$("btnLog").onclick=()=>{ const b=$("logBox");
+  if(b.classList.contains("hide")){ b.classList.remove("hide"); send({cmd:"log"}); $("btnLog").textContent="收起日志"; }
+  else{ b.classList.add("hide"); $("btnLog").textContent="运行日志"; } };
+function renderLog(rows){ $("logBox").textContent=rows.map(r=>`[${r[0]/1000|0}s][${r[1]}] ${r[2]}`).join("\n"); }
+$("btnWifi").onclick=()=>{ const s=$("wfSsid").value.trim(),p=$("wfPass").value;
+  if(!s){toast("请输入 SSID");return;} send({cmd:"wifi",ssid:s,pass:p}); };
+$("btnReboot").onclick=()=>{ if(confirm("确认重启设备?")) send({cmd:"reboot"}); };
+
+let tT; function toast(s){ const t=$("toast"); t.textContent=s; t.classList.add("show");
+  clearTimeout(tT); tT=setTimeout(()=>t.classList.remove("show"),2500); }
+
+/* ---------- 历史趋势 ---------- */
+const HS=[["temp","水温","#f59e0b",1],["ph","pH","#2dd4bf",2],["orp","ORP","#a78bfa",0],
+  ["tds1","TDS(滤前)","#60a5fa",0],["tds2","TDS(滤后)","#34d399",0],
+  ["lux","光照","#facc15",0],["lvl","水位","#f472b6",1]];
+let histH=24, histOn={}, histData=null;
+function initHist(){
+  HS.forEach(([k,n,c])=>{
+    histOn[k]=true;
+    const b=document.createElement("span");
+    b.className="hleg"; b.dataset.k=k;
+    b.style.cssText="cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:2px 8px;color:"+c;
+    b.onclick=()=>{ histOn[k]=!histOn[k]; b.style.opacity=histOn[k]?1:.3; drawHist(); };
+    $("histLegend").appendChild(b);
+  });
+  document.querySelectorAll(".hsel").forEach(b=>b.onclick=()=>{
+    histH=+b.dataset.h;
+    document.querySelectorAll(".hsel").forEach(x=>{
+      const sel=x===b;
+      x.style.background=sel?"var(--ac)":"";
+      x.style.color=sel?"#04211c":"";
+    });
+    loadHist();
+  });
+  document.querySelector('.hsel[data-h="24"]').click();
+}
+function loadHist(){ $("histHint").textContent="加载中…";
+  if(ws&&ws.readyState===1) send({cmd:"hist",hours:histH}); }
+function renderHistLegend(){
+  const d=histData; if(!d)return;
+  document.querySelectorAll(".hleg").forEach(el=>{
+    const k=el.dataset.k, a=d[k];
+    if(!a||!a.length){ el.textContent=""; el.style.display="none"; return; }
+    el.style.display="";
+    const vs=a.filter(v=>v!=null);
+    const info=HS.find(x=>x[0]===k);
+    if(!vs.length){ el.innerHTML="<span style='color:var(--dim)'>"+info[1]+" 无数据</span>"; return; }
+    const mn=Math.min(...vs), mx=Math.max(...vs);
+    const f=info[3];
+    el.innerHTML=`<span style="color:${info[2]}">●</span> ${info[1]} `+
+      (mn===mx?mn.toFixed(f):mn.toFixed(f)+"~"+mx.toFixed(f));
+  });
+}
+function drawHist(){
+  const cv=$("histCv"), d=histData;
+  const W=cv.clientWidth||340, H=260;
+  cv.width=W; cv.height=H;
+  const ctx=cv.getContext("2d");
+  ctx.clearRect(0,0,W,H);
+  if(!d||!d.ts||!d.ts.length){
+    ctx.fillStyle="#7d8b9c"; ctx.font="13px sans-serif";
+    ctx.fillText("暂无历史数据（设备每 30 分钟自动记录一条）",12,60);
+    $("histAgg").textContent="";
+    return;
+  }
+  $("histAgg").textContent=d.n+" 点 · 实际间隔≈"+
+    Math.round(histH*3600/Math.max(1,d.n)/60)+" 分钟";
+  const pad=8, tw=W-pad*2, th=H-34;
+  // 水平网格
+  ctx.strokeStyle="#232d3a"; ctx.fillStyle="#7d8b9c"; ctx.font="11px sans-serif";
+  for(let i=0;i<=3;i++){
+    ctx.beginPath(); ctx.moveTo(0,10+th*i/3); ctx.lineTo(W,10+th*i/3); ctx.stroke();
+  }
+  // 时间刻度
+  const n=d.ts.length;
+  for(let i=0;i<=4;i++){
+    const idx=Math.min(n-1,Math.round((n-1)*i/4));
+    const dt=new Date(d.ts[idx]*1000);
+    const lb=histH<=24
+      ?String(dt.getHours()).padStart(2,"0")+":"+String(dt.getMinutes()).padStart(2,"0")
+      :(dt.getMonth()+1)+"/"+dt.getDate();
+    const x=pad+tw*i/4;
+    ctx.fillText(lb,Math.min(x,W-30),H-8);
+  }
+  // 序列（各自独立归一化）
+  HS.forEach(([k,,c])=>{
+    if(!histOn[k])return;
+    const a=d[k]; if(!a||!a.length)return;
+    let mn=Infinity,mx=-Infinity;
+    a.forEach(v=>{ if(v!=null){ if(v<mn)mn=v; if(v>mx)mx=v; } });
+    if(mn===Infinity)return;
+    if(mn===mx){ mn-=1; mx+=1; }
+    ctx.strokeStyle=c; ctx.lineWidth=1.6; ctx.beginPath();
+    let pen=false;
+    a.forEach((v,i)=>{
+      if(v==null){ pen=false; return; }
+      const x=pad+tw*(n>1?i/(n-1):0), y=10+th*(1-(v-mn)/(mx-mn));
+      pen?ctx.lineTo(x,y):(ctx.moveTo(x,y),pen=true);
+    });
+    ctx.stroke();
+    // 单点画圆
+    if(n===1&&a[0]!=null){
+      ctx.fillStyle=c; ctx.beginPath();
+      ctx.arc(pad+tw/2,10+th*(1-(a[0]-mn)/(mx-mn)),2.5,0,7); ctx.fill();
+    }
+  });
+}
+window.addEventListener("resize",()=>drawHist());
+
+initHist();
+connect();
+</script>
+</body>
+</html>
