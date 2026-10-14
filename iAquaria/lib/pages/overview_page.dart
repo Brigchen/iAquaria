@@ -53,6 +53,24 @@ class _OverviewPageState extends State<OverviewPage> {
     super.dispose();
   }
 
+  /// 状态条点击：立即重探当前链路（不等周期定时器）。
+  /// 已直连→拉一帧快照；云端态→先试局域网恢复、失败则重订云端；
+  /// 断开/失败→立即重连。结果由状态条自身的状态变化呈现。
+  Future<void> _refreshLink(BuildContext context) async {
+    final store = AppStore.instance;
+    if (store.linkState == 'manual') {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('手动管理缸无设备连接'), behavior: SnackBarBehavior.floating));
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content:
+            Text(store.linkState == 'connected' ? '正在请求最新数据…' : '正在重新检测设备连接…'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2)));
+    await DeviceService.instance.refreshLink();
+  }
+
   /// 局域网查询设备历史成功：种子本地数据 + 立即展示
   Future<void> _onDeviceHist(HistResult h) async {
     if (!mounted || h.hours != _rangeHours[_rangeIdx]) return;
@@ -78,7 +96,9 @@ class _OverviewPageState extends State<OverviewPage> {
     final tank = AppStore.instance.activeTank;
     if (tank == null) return;
     final hours = _rangeHours[_rangeIdx];
-    if (_loadedTank == tank.id && _loadedHours == hours && _hist != null) return;
+    if (_loadedTank == tank.id && _loadedHours == hours && _hist != null) {
+      return;
+    }
     _loadedTank = tank.id;
     _loadedHours = hours;
     final local = await LocalDataService.instance.readSeries(tank.id, hours);
@@ -112,19 +132,20 @@ class _OverviewPageState extends State<OverviewPage> {
         final hasDevice = tank.esp32Ip.trim().isNotEmpty;
         final hasSource = hasDevice || tank.cloudTopic.trim().isNotEmpty;
         // 无实时数据（人工缸/断连/未连接）：指标卡回退显示本机最近一次记录
-        final fallback = tel.isEmpty ? store.localLatest : const <String, double>{};
+        final fallback =
+            tel.isEmpty ? store.localLatest : const <String, double>{};
         double? fv(double? v, String k) => v ?? fallback[k];
 
         // 指标卡片：海水缸只显示单个盐度（tds1），不显示 tds2
         final cards = <_CardData>[
           _CardData('水温', fv(tel.temp, 'temp'), '℃'),
           _CardData('pH', fv(tel.ph, 'ph'), ''),
-          _CardData('ORP', fv(tel.orp, 'orp'), 'mV'),
+          _CardData(Metrics.label('temp_ph'), fv(tel.tempPh, 'temp_ph'), '℃'),
           _CardData(Metrics.label('tds1', waterType: wt), fv(tel.tds1, 'tds1'),
               Metrics.unit('tds1', waterType: wt)),
           if (!Metrics.isSalt(wt))
-            _CardData(Metrics.label('tds2', waterType: wt), fv(tel.tds2, 'tds2'),
-                Metrics.unit('tds2', waterType: wt)),
+            _CardData(Metrics.label('tds2', waterType: wt),
+                fv(tel.tds2, 'tds2'), Metrics.unit('tds2', waterType: wt)),
           _CardData('水位', fv(tel.level, 'lvl'), '%'),
           _CardData('光照', fv(tel.lux, 'lux'), 'lx'),
         ];
@@ -154,8 +175,9 @@ class _OverviewPageState extends State<OverviewPage> {
             else
               const _CamPlaceholder(hint: '在「鱼缸」页为当前缸填写摄像头地址后显示实时画面'),
             const SizedBox(height: 8),
-            // 设备直连状态条
-            _StateBar(state: store.linkState),
+            // 设备直连状态条（点击立即刷新链路）
+            _StateBar(
+                state: store.linkState, onTap: () => _refreshLink(context)),
             const SizedBox(height: 8),
             // 生物概览（水质参数上方；AI 识别回写 + 手动修正）
             const BioPanel(),
@@ -183,8 +205,8 @@ class _OverviewPageState extends State<OverviewPage> {
     );
   }
 
-  Widget _buildTrend(
-      String tankId, Map<String, List<double?>> series, HistResult? hist, bool hasSource) {
+  Widget _buildTrend(String tankId, Map<String, List<double?>> series,
+      HistResult? hist, bool hasSource) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -199,11 +221,13 @@ class _OverviewPageState extends State<OverviewPage> {
             children: [
               const Expanded(
                 child: Text('历史趋势',
-                    style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+                    style:
+                        TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
               ),
               if (_histLoading)
                 const SizedBox(
-                    width: 14, height: 14,
+                    width: 14,
+                    height: 14,
                     child: CircularProgressIndicator(strokeWidth: 2)),
             ],
           ),
@@ -227,15 +251,20 @@ class _OverviewPageState extends State<OverviewPage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       decoration: BoxDecoration(
-                        color: i == _rangeIdx ? AppTheme.tealDark : const Color(0xFFf1f5f9),
+                        color: i == _rangeIdx
+                            ? AppTheme.tealDark
+                            : const Color(0xFFf1f5f9),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       alignment: Alignment.center,
                       child: Text(_rangeNames[i],
                           style: TextStyle(
                             fontSize: 12,
-                            color: i == _rangeIdx ? Colors.white : AppTheme.muted,
-                            fontWeight: i == _rangeIdx ? FontWeight.w700 : FontWeight.w400,
+                            color:
+                                i == _rangeIdx ? Colors.white : AppTheme.muted,
+                            fontWeight: i == _rangeIdx
+                                ? FontWeight.w700
+                                : FontWeight.w400,
                           )),
                     ),
                   ),
@@ -251,7 +280,8 @@ class _OverviewPageState extends State<OverviewPage> {
                 height: 120,
                 child: Center(
                     child: Text('正在从设备补拉 ${_rangeNames[_rangeIdx]}历史…',
-                        style: const TextStyle(fontSize: 12, color: AppTheme.muted))))
+                        style: const TextStyle(
+                            fontSize: 12, color: AppTheme.muted))))
           else
             SizedBox(
                 height: 120,
@@ -260,7 +290,8 @@ class _OverviewPageState extends State<OverviewPage> {
                         hasSource
                             ? '暂无历史数据（联网后自动同步本机，设备每 30 分钟记录）'
                             : '暂无历史数据（人工测量记录后在此生成趋势）',
-                        style: const TextStyle(fontSize: 12, color: AppTheme.muted)))),
+                        style: const TextStyle(
+                            fontSize: 12, color: AppTheme.muted)))),
         ],
       ),
     );
@@ -320,7 +351,8 @@ class _MarqueeAlertState extends State<_MarqueeAlert>
       child: Row(children: [
         const Padding(
             padding: EdgeInsets.symmetric(horizontal: 8),
-            child: Icon(Icons.notifications_active, color: AppTheme.danger, size: 18)),
+            child: Icon(Icons.notifications_active,
+                color: AppTheme.danger, size: 18)),
         Expanded(
           child: ClipRect(
             child: AnimatedBuilder(
@@ -332,7 +364,8 @@ class _MarqueeAlertState extends State<_MarqueeAlert>
                   child: Text(
                     widget.message,
                     maxLines: 1,
-                    style: const TextStyle(fontSize: 12.5, color: AppTheme.danger),
+                    style:
+                        const TextStyle(fontSize: 12.5, color: AppTheme.danger),
                   ),
                 );
               },
@@ -496,7 +529,8 @@ class _CamViewState extends State<_CamView> {
           child: Stack(alignment: Alignment.bottomLeft, children: [
             AspectRatio(
               aspectRatio: 4 / 3,
-              child: Image.memory(photo, gaplessPlayback: true, fit: BoxFit.cover),
+              child:
+                  Image.memory(photo, gaplessPlayback: true, fit: BoxFit.cover),
             ),
             Positioned(
               top: 6,
@@ -559,8 +593,7 @@ class _CamViewState extends State<_CamView> {
           AspectRatio(
             aspectRatio: 4 / 3,
             child: frame != null
-                ? Image.memory(frame,
-                    gaplessPlayback: true, fit: BoxFit.cover)
+                ? Image.memory(frame, gaplessPlayback: true, fit: BoxFit.cover)
                 : const Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -569,8 +602,8 @@ class _CamViewState extends State<_CamView> {
                             size: 36, color: Colors.white38),
                         SizedBox(height: 8),
                         Text('点右上角 ▶ 查看实时画面',
-                            style: TextStyle(
-                                color: Colors.white54, fontSize: 12)),
+                            style:
+                                TextStyle(color: Colors.white54, fontSize: 12)),
                       ],
                     ),
                   ),
@@ -580,16 +613,13 @@ class _CamViewState extends State<_CamView> {
               bottom: 6,
               left: 6,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(.45),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  offline
-                      ? '摄像头不在线（点击播放重试）$stamp'
-                      : '画面 $stamp（暂停中）',
+                  offline ? '摄像头不在线（点击播放重试）$stamp' : '画面 $stamp（暂停中）',
                   style: const TextStyle(color: Colors.white70, fontSize: 11),
                 ),
               ),
@@ -605,7 +635,8 @@ class _CamViewState extends State<_CamView> {
                   color: Colors.black.withOpacity(.45),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.play_arrow, color: Colors.white, size: 18),
+                child:
+                    const Icon(Icons.play_arrow, color: Colors.white, size: 18),
               ),
             ),
           ),
@@ -681,8 +712,9 @@ class _CardData {
 }
 
 class _StateBar extends StatelessWidget {
-  const _StateBar({required this.state});
+  const _StateBar({required this.state, this.onTap});
   final String state;
+  final VoidCallback? onTap; // 点击状态条：立即刷新链路（重探直连/重订云端/拉快照）
 
   /// 状态样式（Dart 2.19 无 records/switch 表达式，返回 List 两元素）
   static List _stateStyle(String s) {
@@ -722,29 +754,34 @@ class _StateBar extends StatelessWidget {
     final style = _stateStyle(state);
     final color = style[0] as Color;
     final text = style[1] as String;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFe2e8f0)),
-      ),
-      child: Row(children: [
-        Icon(Icons.circle, size: 9, color: color),
-        const SizedBox(width: 8),
-        Expanded(
-          // 长文案（云端失败含 OS 级原因）允许 4 行省略，避免溢出
-          child: Text(text,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: color)),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFe2e8f0)),
         ),
-        const SizedBox(width: 8),
-        // 构建号：核对手机实际运行版本（修复版应显示 b3 或更高）
-        const Text(kAppVerLabel,
-            style: TextStyle(fontSize: 9.5, color: AppTheme.muted)),
-      ]),
+        child: Row(children: [
+          Icon(Icons.circle, size: 9, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            // 长文案（云端失败含 OS 级原因）允许 4 行省略，避免溢出
+            child: Text(text,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12, color: color)),
+          ),
+          const SizedBox(width: 8),
+          // 刷新按钮：点击立即重探当前链路（不等周期重连/重订定时器）
+          const Icon(Icons.refresh, size: 16, color: AppTheme.muted),
+          // 构建号：核对手机实际运行版本（修复版应显示 b3 或更高）
+          const Text(kAppVerLabel,
+              style: TextStyle(fontSize: 9.5, color: AppTheme.muted)),
+        ]),
+      ),
     );
   }
 }
@@ -791,7 +828,8 @@ class _MetricCard extends StatelessWidget {
                   child: Text(data.unit,
                       style: TextStyle(
                           fontSize: 11,
-                          color: offline ? Colors.grey.shade400 : AppTheme.muted)),
+                          color:
+                              offline ? Colors.grey.shade400 : AppTheme.muted)),
                 ),
             ],
           ),

@@ -11,6 +11,10 @@
     {
       "name": "EntryAbility_label",
       "value": "iAquaria"
+    },
+    {
+      "name": "camera_reason",
+      "value": "拍摄鱼缸照片供 AI 识别生物、健康与藻类状况"
     }
   ]
 }

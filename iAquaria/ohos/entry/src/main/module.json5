@@ -37,9 +37,18 @@
       // 权限声明（与安卓侧 AndroidManifest.xml 对应）：
       // 1. INTERNET：MQTT/WS 连接、LLM 请求、ESP32-CAM 抓拍（normal，默认授予）
       // 2. GET_NETWORK_INFO：检查网络可达性，给用户明确提示（normal）
-      //    抓拍走 HTTP 拉取 ESP32-CAM /capture 帧不用设备相机 → 无需相机权限
+      // 3. CAMERA：手机相机拍照识图（user_grant，首次拍照时弹窗授权）
+      //    仅人工缸/无在线摄像头时使用；ESP32-CAM 抓拍走 HTTP 不用此权限
       {"name" :  "ohos.permission.INTERNET"},
-      {"name" :  "ohos.permission.GET_NETWORK_INFO"}
+      {"name" :  "ohos.permission.GET_NETWORK_INFO"},
+      {
+        "name" : "ohos.permission.CAMERA",
+        "reason": "$string:camera_reason",
+        "usedScene": {
+          "abilities": ["EntryAbility"],
+          "when": "inuse"
+        }
+      }
     ]
   }
 }

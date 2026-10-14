@@ -142,7 +142,8 @@ class LlmService {
           final j = jsonDecode(payload) as Map<String, dynamic>;
           final choices = (j['choices'] as List?) ?? const [];
           if (choices.isEmpty) continue;
-          final delta = (choices.first as Map)['delta'] as Map<String, dynamic>?;
+          final delta =
+              (choices.first as Map)['delta'] as Map<String, dynamic>?;
           final content = delta?['content'] as String?;
           if (content != null && content.isNotEmpty) {
             yield content;
@@ -190,7 +191,7 @@ class LlmService {
     final s = StringBuffer('【当前水质读数】');
     if (tel.temp != null) s.write('水温 ${tel.temp}℃；');
     if (tel.ph != null) s.write('pH ${tel.ph}；');
-    if (tel.orp != null) s.write('ORP ${tel.orp}mV；');
+    if (tel.tempPh != null) s.write('水温(pH) ${tel.tempPh}℃；');
     if (tel.tds1 != null) s.write('TDS/盐度通道1 ${tel.tds1}；');
     if (tel.tds2 != null) s.write('TDS通道2 ${tel.tds2}；');
     if (tel.lux != null) s.write('光照 ${tel.lux}lx；');

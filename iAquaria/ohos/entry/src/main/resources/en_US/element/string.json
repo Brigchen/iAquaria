@@ -11,6 +11,10 @@
     {
       "name": "EntryAbility_label",
       "value": "iaquaria"
+    },
+    {
+      "name": "camera_reason",
+      "value": "Take photos of the aquarium for AI recognition of species, health and algae"
     }
   ]
 }

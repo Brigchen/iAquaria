@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/bio.dart';
 import '../models/records.dart';
 import '../models/tank.dart';
+import 'sync_service.dart';
 
 class StorageService {
   StorageService._();
@@ -20,12 +21,14 @@ class StorageService {
 
   SharedPreferences? _prefs;
 
-  Future<SharedPreferences> get prefs async => _prefs ??= await SharedPreferences.getInstance();
+  Future<SharedPreferences> get prefs async =>
+      _prefs ??= await SharedPreferences.getInstance();
 
   // ───────────── 通用 KV ─────────────
   Future<String?> getString(String key) async => (await prefs).getString(key);
 
-  Future<void> setString(String key, String value) async => (await prefs).setString(key, value);
+  Future<void> setString(String key, String value) async =>
+      (await prefs).setString(key, value);
 
   Future<void> remove(String key) async => (await prefs).remove(key);
 
@@ -38,7 +41,8 @@ class StorageService {
   /// - 通义千问(OpenAI兼容, 阿里云百炼): https://llm-xxx.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
   /// - DeepSeek: https://api.deepseek.com/v1
   Future<String> llmBaseUrl() async =>
-      await getString(_kLlmBaseUrl) ?? 'https://llm-54er3r3q5452ofct.cn-beijing.maas.aliyuncs.com/compatible-mode/v1';
+      await getString(_kLlmBaseUrl) ??
+      'https://llm-54er3r3q5452ofct.cn-beijing.maas.aliyuncs.com/compatible-mode/v1';
 
   Future<void> setLlmBaseUrl(String v) => setString(_kLlmBaseUrl, v);
 
@@ -48,7 +52,8 @@ class StorageService {
   Future<void> setLlmApiKey(String v) => setString(_kLlmApiKey, v);
 
   /// 模型名，如 qwen3.8-flash（阿里云百炼多模态）/ deepseek-flash（支持视觉）
-  Future<String> llmModel() async => await getString(_kLlmModel) ?? 'qwen3.8-flash';
+  Future<String> llmModel() async =>
+      await getString(_kLlmModel) ?? 'qwen3.8-flash';
 
   Future<void> setLlmModel(String v) => setString(_kLlmModel, v);
 
@@ -132,6 +137,17 @@ class StorageService {
         : (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
     list.add(e.toJson());
     await setString(_kJournals, jsonEncode(list));
+    SyncService.instance.markDirty(e.tankId); // 触发云同步回发
+  }
+
+  /// 云同步合并专用：写入但不触发 markDirty（合并流程自行调度回发，防乒乓）
+  Future<void> addJournalSilent(JournalEntry e) async {
+    final raw = await getString(_kJournals);
+    final list = (raw == null || raw.isEmpty)
+        ? <Map<String, dynamic>>[]
+        : (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
+    list.add(e.toJson());
+    await setString(_kJournals, jsonEncode(list));
   }
 
   /// 删除单条日志（长按删除误输入/错误记录），按 id+缸 id 双重匹配
@@ -141,6 +157,19 @@ class StorageService {
     try {
       final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
       list.removeWhere((m) => m['id'] == id && m['tankId'] == tankId);
+      await setString(_kJournals, jsonEncode(list));
+      SyncService.instance.markDirty(tankId);
+    } catch (_) {}
+  }
+
+  /// 云同步墓碑合并专用：按 id 集合批量删除日志（不触发 markDirty）
+  Future<void> removeJournalsByIds(String tankId, Set<String> ids) async {
+    final raw = await getString(_kJournals);
+    if (raw == null || raw.isEmpty) return;
+    try {
+      final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
+      list.removeWhere(
+          (m) => m['tankId'] == tankId && ids.contains('${m['id']}'));
       await setString(_kJournals, jsonEncode(list));
     } catch (_) {}
   }
@@ -153,7 +182,10 @@ class StorageService {
     if (raw == null || raw.isEmpty) return [];
     try {
       final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
-      final all = list.map(TaskEntity.fromJson).where((t) => t.tankId == tankId && !t.paused).toList()
+      final all = list
+          .map(TaskEntity.fromJson)
+          .where((t) => t.tankId == tankId && !t.paused)
+          .toList()
         ..sort((a, b) => a.nextDue.compareTo(b.nextDue));
       return all;
     } catch (_) {
@@ -161,8 +193,28 @@ class StorageService {
     }
   }
 
-  Future<void> saveTasks(List<TaskEntity> tasks) =>
-      setString(_kTasks, jsonEncode(tasks.map((t) => t.toJson()).toList()));
+  /// 全部缸的全部任务（含暂停）——云同步合并/快照打包用
+  Future<List<TaskEntity>> tasksAll() async {
+    final raw = await getString(_kTasks);
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      return (jsonDecode(raw) as List)
+          .cast<Map<String, dynamic>>()
+          .map(TaskEntity.fromJson)
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> saveTasks(List<TaskEntity> tasks) {
+    final tanks = tasks.map((t) => t.tankId).toSet();
+    for (final tk in tanks) {
+      SyncService.instance.markDirty(tk); // 触发云同步回发
+    }
+    return setString(
+        _kTasks, jsonEncode(tasks.map((t) => t.toJson()).toList()));
+  }
 
   // ───────────── 告警规则 ─────────────
   static const _kRules = 'alert_rules_json';
@@ -172,7 +224,10 @@ class StorageService {
     if (raw == null || raw.isEmpty) return [];
     try {
       final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
-      return list.map(AlertRule.fromJson).where((r) => r.tankId == tankId).toList();
+      return list
+          .map(AlertRule.fromJson)
+          .where((r) => r.tankId == tankId)
+          .toList();
     } catch (_) {
       return [];
     }
@@ -220,9 +275,7 @@ class StorageService {
       final map = (jsonDecode(raw) as Map).cast<String, dynamic>();
       final arr = map[tankId];
       if (arr is! List) return [];
-      return arr
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
+      return arr.map((e) => Map<String, dynamic>.from(e as Map)).toList();
     } catch (_) {
       return [];
     }
@@ -260,7 +313,10 @@ class StorageService {
       final map = (jsonDecode(raw) as Map).cast<String, dynamic>();
       final arr = map[tankId];
       return arr is List
-          ? arr.map((e) => AnalysisRecord.fromJson(Map<String, dynamic>.from(e as Map))).toList()
+          ? arr
+              .map((e) =>
+                  AnalysisRecord.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList()
           : [];
     } catch (_) {
       return [];

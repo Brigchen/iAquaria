@@ -6,7 +6,7 @@
 library;
 
 const String kAppVersion = '0.1.0';
-const String kAppBuild = '14';
+const String kAppBuild = '21';
 
 /// 页面展示用，如 v0.1.0-b3
 const String kAppVerLabel = 'v$kAppVersion-b$kAppBuild';

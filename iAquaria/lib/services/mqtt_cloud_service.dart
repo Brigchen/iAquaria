@@ -17,6 +17,7 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 
 import 'device_service.dart';
 import 'storage_service.dart';
+import 'sync_service.dart';
 
 class MqttCloudService {
   MqttCloudService._();
@@ -35,7 +36,7 @@ class MqttCloudService {
 
   bool get active => _client != null;
 
-  /// 启动云订阅（topic 如 iaquaria/iaqua-84d4；未配置 Broker 时返回 false）。
+  /// 启动云订阅（topic 如 iaquaria/iaqua-a1b2；未配置 Broker 时返回 false）。
   /// 返回 true=已连上 Broker 并完成订阅；false=未配置或连接失败（调用方可重试）。
   Future<bool> start(String topic) async {
     final t = topic.trim();
@@ -61,9 +62,10 @@ class MqttCloudService {
 
       // 已带非空路径（如 host:8084/mqtt）则原样保留，否则补 EMQX 标准路径
       final slash = host.indexOf('/');
-      final addr = (slash >= 0 && slash < host.length - 1) ? host : '$host/mqtt';
-      final c = MqttServerClient(
-          'wss://$addr', 'iaquaria-app-${DateTime.now().millisecondsSinceEpoch % 1000000}');
+      final addr =
+          (slash >= 0 && slash < host.length - 1) ? host : '$host/mqtt';
+      final c = MqttServerClient('wss://$addr',
+          'iaquaria-app-${DateTime.now().millisecondsSinceEpoch % 1000000}');
       c.port = port > 0 ? port : 8084;
       c.useWebSocket = true; // wss:// 前缀 → TLS WebSocket
       c.autoReconnect = true; // 运行中掉线由库自动重连（EMQX 心跳超时等）
@@ -91,6 +93,8 @@ class MqttCloudService {
       c.updates!.listen(_onMsg);
       // 通知 DeviceService 进入云端查看状态（App 状态条显示云端模式）
       DeviceService.instance.cloudActive(true);
+      // 日志/计划云同步：订阅交换（开关关闭时内部直接返回）
+      await SyncService.instance.onCloudUp();
       return true;
     } catch (e) {
       // 打印并记录真实原因（DNS/网络/TLS），状态条直接展示，便于远程测试定位
@@ -108,6 +112,7 @@ class MqttCloudService {
     final c = _client;
     _client = null;
     _topic = '';
+    SyncService.instance.onCloudDown(); // 同步随云端链路停止
     if (c != null) {
       try {
         c.disconnect();
@@ -121,11 +126,39 @@ class MqttCloudService {
   bool publishCmd(Map<String, dynamic> j) {
     final c = _client;
     if (c == null || _topic.isEmpty) return false;
-    if (c.connectionStatus?.state != MqttConnectionState.connected) return false;
+    if (c.connectionStatus?.state != MqttConnectionState.connected) {
+      return false;
+    }
     try {
       final b = MqttClientPayloadBuilder();
       b.addString(jsonEncode(j));
       c.publishMessage('$_topic/cmd', MqttQos.atLeastOnce, b.payload!);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 订阅云同步主题（SyncService 用；未连接时静默忽略）
+  void subscribeSync(String topic) {
+    final c = _client;
+    if (c == null) return;
+    try {
+      c.subscribe(topic, MqttQos.atLeastOnce);
+    } catch (_) {}
+  }
+
+  /// 发布云同步快照（SyncService 用；retain=true 让新设备立即拿到最新并集）
+  bool publishSync(String topic, String payload, {bool retain = false}) {
+    final c = _client;
+    if (c == null) return false;
+    if (c.connectionStatus?.state != MqttConnectionState.connected) {
+      return false;
+    }
+    try {
+      final b = MqttClientPayloadBuilder();
+      b.addString(payload);
+      c.publishMessage(topic, MqttQos.atLeastOnce, b.payload!, retain: retain);
       return true;
     } catch (_) {
       return false;
@@ -140,6 +173,15 @@ class MqttCloudService {
             MqttPublishPayload.bytesToStringAsString(pub.payload.message);
         final j = jsonDecode(text);
         if (j is! Map) continue;
+        // 云同步主题：iaquaria/sync/<tankId>/state → 交 SyncService 合并
+        if (m.topic.startsWith('iaquaria/sync/')) {
+          final parts = m.topic.split('/');
+          if (parts.length >= 4 && parts[3] == 'state') {
+            SyncService.instance
+                .onSnapshot(parts[2], Map<String, dynamic>.from(j));
+          }
+          continue;
+        }
         if (m.topic.endsWith('/tel')) {
           gotTel = true; // 已收到设备遥测（retained 立即回放或 30s 周期帧）
           // 云端遥测 JSON 与 WS tel 帧的 d 字段同构
@@ -150,8 +192,8 @@ class MqttCloudService {
           // cmd_ack（ev=cmd_ack）。回执无 ch/on，不能当执行器事件回灌，
           // 否则会凭空多出一条「关闭（自动）」的假事件
           if ('${j['ev'] ?? ''}' == 'cmd_ack') continue;
-          DeviceService.instance.ingestEvt('${j['ch'] ?? ''}',
-              j['on'] == true, '${j['src'] ?? 'auto'}');
+          DeviceService.instance.ingestEvt(
+              '${j['ch'] ?? ''}', j['on'] == true, '${j['src'] ?? 'auto'}');
         } else if (m.topic.endsWith('/img')) {
           // {"ts":epoch,"fmt":"jpeg","b64":"..."} → JPEG 字节
           final b64 = '${j['b64'] ?? ''}';

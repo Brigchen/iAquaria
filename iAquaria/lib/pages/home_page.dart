@@ -1,4 +1,4 @@
-﻿/// 主框架：顶部缸切换器（全局）+ 底部 4 Tab + AI 对话入口。
+/// 主框架：顶部缸切换器（全局）+ 底部 4 Tab + AI 对话入口。
 library;
 
 import 'package:flutter/material.dart';
@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../app.dart';
 import '../core/theme.dart';
 import '../models/tank.dart';
+import '../services/demo_data_service.dart';
 import 'ai_chat_page.dart';
 import 'journal_page.dart';
 import 'overview_page.dart';
@@ -24,11 +25,20 @@ class _HomePageState extends State<HomePage> {
   int _tab = 0;
 
   @override
+  void initState() {
+    super.initState();
+    // 演示模式开着则恢复模拟遥测（不重复播种示例数据）
+    DemoDataService.instance.resume();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final store = AppStore.instance;
     return AnimatedBuilder(
       animation: store,
       builder: (context, _) {
+        // 跨页跳转请求（如提醒横幅「去处理」→ 计划页）同步到本地 Tab 状态
+        if (_tab != store.homeTab) _tab = store.homeTab;
         return Scaffold(
           appBar: AppBar(
             title: _TankSwitcher(store: store),
@@ -43,7 +53,8 @@ class _HomePageState extends State<HomePage> {
               ),
               // 设置（AI 服务配置 / 设备连接说明）
               IconButton(
-                icon: const Icon(Icons.settings_outlined, color: AppTheme.muted),
+                icon:
+                    const Icon(Icons.settings_outlined, color: AppTheme.muted),
                 tooltip: '设置',
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const SettingsPage()),
@@ -62,12 +73,29 @@ class _HomePageState extends State<HomePage> {
           ),
           bottomNavigationBar: NavigationBar(
             selectedIndex: _tab,
-            onDestinationSelected: (i) => setState(() => _tab = i),
+            // 手动切换同时写回 store（不通知），保持与跨页跳转请求一致，
+            // 避免下次 store 通知把用户拽回旧 Tab
+            onDestinationSelected: (i) {
+              setState(() => _tab = i);
+              store.homeTab = i;
+            },
             destinations: const [
-              NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: '概览'),
-              NavigationDestination(icon: Icon(Icons.menu_book_outlined), selectedIcon: Icon(Icons.menu_book), label: '日志'),
-              NavigationDestination(icon: Icon(Icons.event_note_outlined), selectedIcon: Icon(Icons.event_note), label: '计划'),
-              NavigationDestination(icon: Icon(Icons.opacity_outlined), selectedIcon: Icon(Icons.opacity), label: '鱼缸'),
+              NavigationDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(Icons.dashboard),
+                  label: '概览'),
+              NavigationDestination(
+                  icon: Icon(Icons.menu_book_outlined),
+                  selectedIcon: Icon(Icons.menu_book),
+                  label: '日志'),
+              NavigationDestination(
+                  icon: Icon(Icons.event_note_outlined),
+                  selectedIcon: Icon(Icons.event_note),
+                  label: '计划'),
+              NavigationDestination(
+                  icon: Icon(Icons.opacity_outlined),
+                  selectedIcon: Icon(Icons.opacity),
+                  label: '鱼缸'),
             ],
           ),
         );
@@ -99,7 +127,8 @@ class _TankSwitcher extends StatelessWidget {
         const PopupMenuItem(
           enabled: false,
           height: 32,
-          child: Text('添加鱼缸请进入「鱼缸」Tab', style: TextStyle(fontSize: 12, color: AppTheme.muted)),
+          child: Text('添加鱼缸请进入「鱼缸」Tab',
+              style: TextStyle(fontSize: 12, color: AppTheme.muted)),
         ),
       ],
       child: Row(

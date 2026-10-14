@@ -30,7 +30,7 @@ const List<Map<String, String>> kManualParams = [
 const List<Map<String, String>> kAutoParams = [
   {'key': 'temp', 'label': '水温', 'unit': '℃'},
   {'key': 'ph', 'label': 'pH', 'unit': ''},
-  {'key': 'orp', 'label': 'ORP', 'unit': 'mV'},
+  {'key': 'temp_ph', 'label': '水温(pH)', 'unit': '℃'},
   {'key': 'tds1', 'label': 'TDS(滤前)/盐度', 'unit': 'ppm'},
   {'key': 'tds2', 'label': 'TDS(滤后)', 'unit': 'ppm'},
 ];
@@ -44,6 +44,7 @@ class LocalDataService {
 
   /// 每缸记录条数上限（超过触发压缩）
   static const int _cap = 6000;
+
   /// 自动数据最小记录间隔（秒）
   static const int _minAutoGap = 300;
 
@@ -79,7 +80,7 @@ class LocalDataService {
     final v = <String, dynamic>{
       'temp': tel.temp,
       'ph': tel.ph,
-      'orp': tel.orp,
+      'temp_ph': tel.tempPh,
       'tds1': tel.tds1,
       'tds2': tel.tds2,
       'lux': tel.lux,
@@ -111,7 +112,7 @@ class LocalDataService {
     if (h.ts.isEmpty) return;
     final list = await all(tankId);
     final tsList = list.map((e) => e['ts'] as int).toList();
-    const keys = ['temp', 'ph', 'orp', 'tds1', 'tds2', 'lux', 'lvl'];
+    const keys = ['temp', 'ph', 'temp_ph', 'tds1', 'tds2', 'lux', 'lvl'];
     var added = 0;
     for (var i = 0; i < h.ts.length; i++) {
       final ts = h.ts[i];
@@ -155,9 +156,12 @@ class LocalDataService {
   /// 读取趋势数据：指定小时范围内 ≤400 点抽稀（各序列与 ts 对齐，缺测为 null）
   Future<HistResult> readSeries(String tankId, int hours) async {
     final recs = await all(tankId);
-    const keys = ['temp', 'ph', 'orp', 'tds1', 'tds2', 'lux', 'lvl'];
-    final series = <String, List<double?>>{for (final k in keys) k: <double?>[]};
-    if (recs.isEmpty) return HistResult(hours: hours, ts: const [], series: series);
+    const keys = ['temp', 'ph', 'temp_ph', 'tds1', 'tds2', 'lux', 'lvl'];
+    final series = <String, List<double?>>{
+      for (final k in keys) k: <double?>[]
+    };
+    if (recs.isEmpty)
+      return HistResult(hours: hours, ts: const [], series: series);
 
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final cutoff = now - hours * 3600;

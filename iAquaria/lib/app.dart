@@ -46,6 +46,30 @@ class AppStore extends ChangeNotifier {
   DateTime? cloudPhotoAt;
   AlertEvent? lastAlert;
 
+  /// 底部 Tab 跳转请求（跨页导航：提醒横幅「去处理」→ 计划页等）。
+  /// HomePage 在 builder 内同步此值到自身 _tab。
+  int homeTab = 0;
+
+  /// 数据版本号：云同步合并改写本地数据后自增并通知，
+  /// 计划页据此重载完成统计（FutureBuilder 数据随通知自动重取）
+  int dataVer = 0;
+
+  /// 云同步合并改写本地数据后的统一通知入口（dataVer+1 并广播刷新）
+  void notifyDataChanged() {
+    dataVer++;
+    notifyListeners();
+  }
+
+  /// 待处理任务 id（配合 homeTab=2：跳到计划页后自动弹出该任务处理面板）
+  String? pendingTaskId;
+
+  /// 请求跳到计划页并处理指定任务（提醒横幅「去处理」入口）
+  void requestTask(String taskId) {
+    pendingTaskId = taskId;
+    homeTab = 2; // 底部 Tab：0 概览 / 1 日志 / 2 计划 / 3 鱼缸
+    notifyListeners();
+  }
+
   /// 当前缸生物清单（AI 识别回写 + 手动修正，持久化）
   List<BioSpecies> bio = [];
 
@@ -66,7 +90,8 @@ class AppStore extends ChangeNotifier {
   Future<void> init() async {
     tanks = await st.tanks();
     final id = await st.activeTankId();
-    activeTank = tanks.where((t) => t.id == id).firstOrNull ?? tanks.firstOrNull;
+    activeTank =
+        tanks.where((t) => t.id == id).firstOrNull ?? tanks.firstOrNull;
     notifyListeners();
     if (activeTank != null) {
       await _connect(activeTank!);
@@ -214,7 +239,8 @@ class AppStore extends ChangeNotifier {
 
   Future<void> _logActEvent(String tankId, ActEvent e) async {
     // 喂食归入「喂食」，其余执行器动作归入「设备」类型
-    final type = e.ch == 'feed' ? JournalEntry.typeFeed : JournalEntry.typeDevice;
+    final type =
+        e.ch == 'feed' ? JournalEntry.typeFeed : JournalEntry.typeDevice;
     await st.addJournal(JournalEntry(
       id: 'evt_${e.ts.millisecondsSinceEpoch}_${e.ch}',
       tankId: tankId,

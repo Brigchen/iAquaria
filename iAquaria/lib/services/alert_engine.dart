@@ -78,8 +78,8 @@ class AlertEngine {
         return t.temp;
       case 'ph':
         return t.ph;
-      case 'orp':
-        return t.orp;
+      case 'temp_ph':
+        return t.tempPh;
       case 'tds1':
         return t.tds1;
       case 'tds2':

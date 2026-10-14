@@ -3,7 +3,7 @@ class Telemetry {
   const Telemetry({
     this.temp,
     this.ph,
-    this.orp,
+    this.tempPh,
     this.tds1,
     this.tds2,
     this.lux,
@@ -15,7 +15,7 @@ class Telemetry {
 
   final double? temp; // 水温 ℃（DS18B20）
   final double? ph; // pH
-  final double? orp; // ORP mV
+  final double? tempPh; // 水温(pH) ℃（pH 探头自带温度）
   final double? tds1; // 淡水: TDS(滤前) ppm / 海水: 盐度 ‰
   final double? tds2; // 淡水: TDS(滤后) ppm / 海水: 不显示
   final double? lux; // 光照 lx（GY-30）
@@ -41,7 +41,7 @@ class Telemetry {
   factory Telemetry.fromJson(Map<String, dynamic> j) => Telemetry(
         temp: (j['temp'] as num?)?.toDouble(),
         ph: (j['ph'] as num?)?.toDouble(),
-        orp: (j['orp'] as num?)?.toDouble(),
+        tempPh: (j['temp_ph'] as num?)?.toDouble(),
         tds1: (j['tds1'] as num?)?.toDouble(),
         tds2: (j['tds2'] as num?)?.toDouble(),
         lux: (j['lux'] as num?)?.toDouble(),
@@ -54,7 +54,7 @@ class Telemetry {
   bool get isEmpty =>
       temp == null &&
       ph == null &&
-      orp == null &&
+      tempPh == null &&
       tds1 == null &&
       tds2 == null &&
       lux == null &&

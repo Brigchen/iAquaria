@@ -19,7 +19,7 @@ class SeriesStyle {
 const kSeriesStyles = <SeriesStyle>[
   SeriesStyle('temp', '水温', Color(0xFFef4444)),
   SeriesStyle('ph', 'pH', Color(0xFF8b5cf6)),
-  SeriesStyle('orp', 'ORP', Color(0xFFb45309)),
+  SeriesStyle('temp_ph', '水温(pH)', Color(0xFFb45309)),
   SeriesStyle('tds1', 'TDS1', Color(0xFF2563eb)),
   SeriesStyle('tds2', 'TDS2', Color(0xFF0d9488)),
   SeriesStyle('lux', '光照', Color(0xFFf59e0b)),
@@ -36,6 +36,7 @@ class TrendChart extends StatefulWidget {
   });
 
   final List<int> ts;
+
   /// key → 归一化前原始序列（与 ts 等长，可含 null）
   final Map<String, List<double?>> series;
   final int hours;
@@ -140,7 +141,8 @@ class _LegendChip extends StatelessWidget {
   final VoidCallback onTap;
 
   String get _rangeText {
-    String f(double v) => v >= 100 ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
+    String f(double v) =>
+        v >= 100 ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
     return '${f(range[0])}~${f(range[1])}';
   }
 
@@ -152,10 +154,13 @@ class _LegendChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
         decoration: BoxDecoration(
-          color: active ? style.color.withOpacity(.12) : const Color(0xFFf1f5f9),
+          color:
+              active ? style.color.withOpacity(.12) : const Color(0xFFf1f5f9),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: active ? style.color.withOpacity(.5) : const Color(0xFFe2e8f0)),
+              color: active
+                  ? style.color.withOpacity(.5)
+                  : const Color(0xFFe2e8f0)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Container(
@@ -202,12 +207,10 @@ class _TrendPainter extends CustomPainter {
     final span = (t1 - t0) < 1 ? 1.0 : (t1 - t0).toDouble();
 
     // X 轴时间标注（首/中/尾）
-    final tp = TextPainter()
-      ..textDirection = TextDirection.ltr;
+    final tp = TextPainter()..textDirection = TextDirection.ltr;
     void label(String s, double x, TextAlign align) {
       tp.text = TextSpan(
-          text: s,
-          style: const TextStyle(fontSize: 9, color: AppTheme.muted));
+          text: s, style: const TextStyle(fontSize: 9, color: AppTheme.muted));
       tp.layout();
       final dx = align == TextAlign.left
           ? x
@@ -216,6 +219,7 @@ class _TrendPainter extends CustomPainter {
               : x - tp.width / 2;
       tp.paint(canvas, Offset(dx, size.height - 2));
     }
+
     final chartH = size.height - 14; // 底部留时间轴
     final dt0 = DateTime.fromMillisecondsSinceEpoch(t0);
     final dt1 = DateTime.fromMillisecondsSinceEpoch(t1);
@@ -228,6 +232,7 @@ class _TrendPainter extends CustomPainter {
       final dd = t.day.toString().padLeft(2, '0');
       return '$mm-$dd';
     }
+
     label(fmt(dt0), 2, TextAlign.left);
     label(fmt(dtm), size.width / 2, TextAlign.center);
     label(fmt(dt1), size.width - 2, TextAlign.right);

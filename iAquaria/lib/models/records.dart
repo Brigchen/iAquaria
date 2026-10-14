@@ -54,6 +54,7 @@ class TaskEntity {
     required this.nextDue,
     this.time,
     this.paused = false,
+    this.upd = 0,
   });
 
   final String id;
@@ -63,6 +64,10 @@ class TaskEntity {
   final DateTime nextDue; // 下次到期
   final String? time; // 每日计划时刻 "HH:mm"（null=不限时刻，全天任务）
   final bool paused;
+
+  /// 最近修改时间（epoch ms）——多设备云同步冲突合并用（新者胜），
+  /// 0=旧数据未记录（同步时视为最旧，不会覆盖他端）
+  final int upd;
 
   bool get overdue => nextDue.isBefore(DateTime.now());
 
@@ -74,6 +79,7 @@ class TaskEntity {
         'nextDue': nextDue.toIso8601String(),
         'time': time,
         'paused': paused,
+        if (upd > 0) 'upd': upd,
       };
 
   factory TaskEntity.fromJson(Map<String, dynamic> j) => TaskEntity(
@@ -84,6 +90,7 @@ class TaskEntity {
         nextDue: DateTime.tryParse((j['nextDue'] as String?) ?? '') ?? DateTime.now(),
         time: j['time'] as String?,
         paused: (j['paused'] as bool?) ?? false,
+        upd: (j['upd'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -110,7 +117,7 @@ class AlertRule {
 
   final String id;
   final String tankId;
-  final String metric; // temp/ph/orp/tds1/tds2/lux/lvl
+  final String metric; // temp/ph/temp_ph/tds1/tds2/lux/lvl
   final String mode;
   final double? minVal;
   final double? maxVal;

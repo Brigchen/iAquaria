@@ -23,7 +23,11 @@ import 'mqtt_cloud_service.dart';
 
 /// 执行器状态翻转事件（设备自动控制 / 手动控制 / 喂食脉冲）
 class ActEvent {
-  ActEvent({required this.ch, required this.on, required this.src, required this.ts});
+  ActEvent(
+      {required this.ch,
+      required this.on,
+      required this.src,
+      required this.ts});
   final String ch; // co2 / feed / light / heater / pump
   final bool on;
   final String src; // auto / manual / feed
@@ -31,7 +35,11 @@ class ActEvent {
 
   String get desc {
     const names = {
-      'co2': 'CO2', 'feed': '喂食', 'light': '灯光', 'heater': '加温', 'pump': '补水泵',
+      'co2': 'CO2',
+      'feed': '喂食',
+      'light': '灯光',
+      'heater': '加温',
+      'pump': '补水泵',
     };
     final n = names[ch] ?? ch;
     return '$n ${on ? "开启" : "关闭"}（${src == "auto" ? "自动" : src == "manual" ? "手动" : "喂食脉冲"}）';
@@ -43,7 +51,7 @@ class HistResult {
   HistResult({required this.hours, required this.ts, required this.series});
   final int hours;
   final List<int> ts;
-  final Map<String, List<double?>> series; // temp/ph/orp/tds1/tds2/lux/lvl
+  final Map<String, List<double?>> series; // temp/ph/temp_ph/tds1/tds2/lux/lvl
 }
 
 class DeviceService {
@@ -67,16 +75,36 @@ class DeviceService {
   int _rev = 0; // 设备配置版本号（hello/tel 帧更新，cfg.setMany 校验用）
   final List<Map<String, dynamic>> _pendingCmds = []; // 连接建立前缓存的命令
 
-  final StreamController<Telemetry> _telController = StreamController.broadcast();
-  final StreamController<String> _stateController = StreamController.broadcast();
-  final StreamController<ActEvent> _evtController = StreamController.broadcast();
-  final StreamController<Uint8List> _photoController = StreamController.broadcast();
-  final StreamController<Map<String, dynamic>> _cfgController = StreamController.broadcast();
-  final StreamController<Map<String, dynamic>> _ackController = StreamController.broadcast();
-  final StreamController<HistResult> _histController = StreamController.broadcast();
+  final StreamController<Telemetry> _telController =
+      StreamController.broadcast();
+  final StreamController<String> _stateController =
+      StreamController.broadcast();
+  final StreamController<ActEvent> _evtController =
+      StreamController.broadcast();
+  final StreamController<Uint8List> _photoController =
+      StreamController.broadcast();
+  final StreamController<Map<String, dynamic>> _cfgController =
+      StreamController.broadcast();
+  final StreamController<Map<String, dynamic>> _ackController =
+      StreamController.broadcast();
+  final StreamController<HistResult> _histController =
+      StreamController.broadcast();
+
+  String _lastState = ''; // 最近一次广播的连接状态（状态条点击刷新的依据）
+  DateTime? _lastTelAt; // 最近一次收到遥测（局域网/云端），云端假死检测用
+  DateTime? _lastCloudRestart; // 上次强制重启云订阅时间（限频，防真离线时反复重订）
 
   /// 遥测数据流
   Stream<Telemetry> get telemetry => _telController.stream;
+
+  /// 最近一次广播的连接状态（同 UI linkState；refreshLink 依据）
+  String get lastState => _lastState;
+
+  /// 统一状态广播入口：记录 + 推送
+  void _emit(String s) {
+    _lastState = s;
+    _stateController.add(s);
+  }
 
   /// 连接状态流："connecting" / "connected" / "disconnected" / "error"
   Stream<String> get state => _stateController.stream;
@@ -88,6 +116,7 @@ class DeviceService {
   Stream<Map<String, dynamic>> get config => _cfgController.stream;
 
   Map<String, dynamic>? _lastCfg;
+
   /// 最近一次设备配置快照（握手后自动推送；表单读 cloud.dev_id 等用）
   Map<String, dynamic>? get lastCfg => _lastCfg;
 
@@ -110,7 +139,7 @@ class DeviceService {
   Future<bool> connect(String ip, {String cloudTopic = ''}) async {
     final host = ip.trim();
     if (host.isEmpty) {
-      if (!_cloudMode) _stateController.add('error');
+      if (!_cloudMode) _emit('error');
       return false;
     }
     // 内部重连（_scheduleRetry / _scheduleProbe）只传 ip、不传 cloudTopic，
@@ -127,7 +156,7 @@ class DeviceService {
     await _closeSocket();
     // 云端模式下的局域网恢复探测为静默连接，不广播 connecting/error，
     // 避免「设备连接中/失败」覆盖「云端查看中」状态。
-    if (!_cloudMode) _stateController.add('connecting');
+    if (!_cloudMode) _emit('connecting');
     WebSocket ws;
     try {
       ws = await WebSocket.connect('ws://$host/ws').timeout(_connectTimeout);
@@ -135,7 +164,7 @@ class DeviceService {
       if (_cloudMode) {
         _scheduleProbe(); // 云端模式：继续低频静默探测，不动状态
       } else {
-        _stateController.add('error');
+        _emit('error');
         _scheduleRetry();
         _maybeStartCloud();
       }
@@ -149,7 +178,7 @@ class DeviceService {
     }
     _cloudTimer?.cancel(); // 直连已成功：撤防云端兜底
     MqttCloudService.instance.stop(); // 局域网恢复，退出云端模式
-    _stateController.add('connected');
+    _emit('connected');
     // 补发连接建立前缓存的命令（hist/cfg/ctrl 等）
     _flushPendingCmds();
     // 连接后立即拉一次快照，不必等设备的周期广播
@@ -168,11 +197,11 @@ class DeviceService {
         if (_manualClose) return;
         if (_cloudMode) {
           // 探测恢复后又短暂掉线：回到云端状态，继续静默探测
-          _stateController.add('cloud');
+          _emit('cloud');
           _scheduleProbe();
           return;
         }
-        _stateController.add('disconnected');
+        _emit('disconnected');
         _scheduleRetry();
         _maybeStartCloud();
       },
@@ -182,7 +211,7 @@ class DeviceService {
           _scheduleProbe();
           return;
         }
-        _stateController.add('error');
+        _emit('error');
         _scheduleRetry();
         _maybeStartCloud();
       },
@@ -289,7 +318,9 @@ class DeviceService {
   /// 不等 5 秒超时），若每次失败都重排 8 秒定时器，云端将永远轮不到触发。
   /// 撤防时机：直连成功（connect 内）或手动 disconnect。
   void _maybeStartCloud() {
-    if (_cloudTopic.isEmpty || _manualClose || _ip.isEmpty || _cloudMode) return;
+    if (_cloudTopic.isEmpty || _manualClose || _ip.isEmpty || _cloudMode) {
+      return;
+    }
     if (_cloudTimer?.isActive ?? false) return; // 已布防，不被重连重置
     _cloudTimer = Timer(const Duration(seconds: 8), () {
       if (_manualClose || _cloudTopic.isEmpty || _cloudMode) return;
@@ -302,11 +333,11 @@ class DeviceService {
   /// 失败时状态带真实原因：cloud-error|<原因>，状态条直接展示。
   Future<void> _startCloudWithRetry() async {
     if (_manualClose || _cloudTopic.isEmpty || !_cloudMode) return;
-    _stateController.add('cloud-connecting');
+    _emit('cloud-connecting');
     final ok = await MqttCloudService.instance.start(_cloudTopic);
     if (ok || _manualClose || _cloudTopic.isEmpty || !_cloudMode) return;
     final err = MqttCloudService.instance.lastError;
-    _stateController.add(err.isEmpty ? 'cloud-error|' : 'cloud-error|$err');
+    _emit(err.isEmpty ? 'cloud-error|' : 'cloud-error|$err');
     _cloudTimer?.cancel();
     _cloudTimer = Timer(const Duration(seconds: 20), _startCloudWithRetry);
   }
@@ -315,7 +346,7 @@ class DeviceService {
   void _enterCloudMode() {
     _cloudMode = true;
     _retryTimer?.cancel();
-    _stateController.add('cloud-connecting');
+    _emit('cloud-connecting');
     _scheduleProbe();
   }
 
@@ -332,11 +363,11 @@ class DeviceService {
   /// 云端遥测回灌（与 WS tel 帧同构），UI 无感。
   /// 若此前提示过「无数据」（ID 填错后改对/设备恢复上线），此处恢复云端正常状态。
   void ingestTel(Map<String, dynamic> d) {
-    _telWatch?.cancel();
-    _telWatch = null;
+    _lastTelAt = DateTime.now();
+    _lastCloudRestart = null; // 链路健康，重置强制重订限频
     if (_nodataShown) {
       _nodataShown = false;
-      _stateController.add('cloud');
+      _emit('cloud');
     }
     _telController.add(Telemetry.fromJson(d));
   }
@@ -355,25 +386,74 @@ class DeviceService {
   Stream<Uint8List> get cloudPhoto => _photoController.stream;
 
   /// 云端订阅状态（true=已进入云端查看，false=退出）。
-  /// 进入后启动 20s 看门狗：设备 retained 遥测应立即回放（最快 5~10s 内出数据），
-  /// 若始终无数据通常是「云查看设备 ID」与设备实际 ID 不符（订阅到了不存在的主题），
-  /// 状态条给出明确提示，避免一直停在「云端查看中」干等。
+  ///
+  /// 进入后启动【周期】看门狗（每 20s）：
+  /// - 订阅后从未收到遥测（retained 应立即回放）→ 提示云查看 ID 可能填错；
+  /// - 此前有数据但 >75s 无更新（正常 30s 一帧）→ 判定云订阅假死
+  ///   （autoReconnect 静默放弃 / Broker 半开连接），强制重订一次。
+  ///   重订按 5 分钟限频：设备真离线时不反复制造订阅流量。
+  /// 这修复「仪器有连接但一直显示云端查看中且数据不更新」的问题。
   void cloudActive(bool up) {
     _telWatch?.cancel();
     _telWatch = null;
     if (up) {
       _nodataShown = false;
-      _telWatch = Timer(const Duration(seconds: 20), () {
-        if (!MqttCloudService.instance.gotTel && !_manualClose) {
-          _nodataShown = true;
-          _stateController.add('cloud-nodata|已连上云端但 20 秒未收到设备数据，'
-              '请核对鱼缸页「云查看设备 ID」是否与设备实际 ID 一致（设备 Web 管理页可查）');
+      _lastTelAt = null; // 新订阅从零计时（retained 帧应数秒内到达）
+      _telWatch = Timer.periodic(const Duration(seconds: 20), (_) {
+        if (_manualClose || !_cloudMode) return;
+        if (!MqttCloudService.instance.active) return;
+        final last = _lastTelAt;
+        if (last == null) {
+          // 订阅建立后从未收到遥测：多为云查看 ID 与设备实际 ID 不符
+          if (!_nodataShown) {
+            _nodataShown = true;
+            _emit('cloud-nodata|已连上云端但 20 秒未收到设备数据，'
+                '请核对鱼缸页「云查看设备 ID」是否与设备实际 ID 一致（设备 Web 管理页可查）');
+          }
+          return;
         }
+        if (DateTime.now().difference(last) <= const Duration(seconds: 75)) {
+          return; // 数据新鲜
+        }
+        final lastR = _lastCloudRestart;
+        if (lastR != null &&
+            DateTime.now().difference(lastR) < const Duration(minutes: 5)) {
+          return; // 限频：避免设备真离线时每 20s 重订
+        }
+        _lastCloudRestart = DateTime.now();
+        _cloudTimer?.cancel();
+        _startCloudWithRetry(); // 强制重订（状态条短暂显示"切换云端中"）
       });
     } else {
       _nodataShown = false;
+      _lastTelAt = null;
     }
-    _stateController.add(up ? 'cloud' : 'disconnected');
+    _emit(up ? 'cloud' : 'disconnected');
+  }
+
+  /// 状态条点击「立即刷新」：按当前链路状态立即重探，不等周期定时器。
+  /// - 已直连：请求一帧遥测快照（立即刷新数据）
+  /// - 云端态：先静默试一次局域网直连（成功即切回直连），失败则强制重订云端
+  /// - 连接失败/断开态：立即重连一次（失败自动恢复 5s 周期重试 + 云端布防）
+  Future<void> refreshLink() async {
+    if (_lastState == 'connected') {
+      sendCmd({'cmd': 'tel'});
+      return;
+    }
+    if (_lastState == 'manual' || _manualClose) return;
+    if (_cloudMode) {
+      if (_ip.isNotEmpty) {
+        final ok = await connect(_ip); // 成功 → 内部已切直连并广播 connected
+        if (ok) return;
+      }
+      _cloudTimer?.cancel();
+      await _startCloudWithRetry(); // 重订云端（状态条显示进展/失败原因）
+      return;
+    }
+    if (_ip.isNotEmpty) {
+      _retryTimer?.cancel();
+      await connect(_ip);
+    }
   }
 
   void _onFrame(dynamic data) {
@@ -425,7 +505,7 @@ class DeviceService {
         if (n != null) ts.add(n);
       }
     }
-    const keys = ['temp', 'ph', 'orp', 'tds1', 'tds2', 'lux', 'lvl'];
+    const keys = ['temp', 'ph', 'temp_ph', 'tds1', 'tds2', 'lux', 'lvl'];
     final series = <String, List<double?>>{};
     for (final k in keys) {
       final raw = frame[k];
@@ -438,7 +518,8 @@ class DeviceService {
       series[k] = list;
     }
     final h = frame['hours'];
-    return HistResult(hours: (h is num) ? h.toInt() : 24, ts: ts, series: series);
+    return HistResult(
+        hours: (h is num) ? h.toInt() : 24, ts: ts, series: series);
   }
 
   void _scheduleRetry() {

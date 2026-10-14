@@ -23,8 +23,8 @@ class Metrics {
         return '水温';
       case 'ph':
         return 'pH';
-      case 'orp':
-        return 'ORP';
+      case 'temp_ph':
+        return '水温(pH)';
       case 'lux':
         return '光照';
       case 'lvl':
@@ -38,8 +38,8 @@ class Metrics {
     switch (metric) {
       case 'temp':
         return '℃';
-      case 'orp':
-        return 'mV';
+      case 'temp_ph':
+        return '℃';
       case 'tds1':
       case 'tds2':
         return isSalt(waterType) ? '‰' : 'ppm';
@@ -53,7 +53,15 @@ class Metrics {
   }
 
   /// 全量协议指标键
-  static const List<String> allKeys = ['temp', 'ph', 'orp', 'tds1', 'tds2', 'lux', 'lvl'];
+  static const List<String> allKeys = [
+    'temp',
+    'ph',
+    'temp_ph',
+    'tds1',
+    'tds2',
+    'lux',
+    'lvl'
+  ];
 
   /// 当前水型下可显示/可配置的指标（海水缸只有单个盐度 = tds1，不含 tds2）
   static List<String> visibleKeys(String? waterType) =>

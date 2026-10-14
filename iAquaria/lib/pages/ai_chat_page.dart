@@ -61,8 +61,8 @@ const _quickAsks = <_QuickAsk>[
   _QuickAsk('养护清单', '综合当前监测数据，生成一份本周养护清单（喂食/换水/擦缸/设备检查）。回答控制在200字内。'),
 ];
 
-/// 照片来源（在线摄像头 / 手机相机）
-enum _ImgSrc { online, phone }
+/// 照片来源（在线摄像头 / 手机相机 / 云端最新照片）
+enum _ImgSrc { online, phone, cloud }
 
 class AiChatPage extends StatefulWidget {
   const AiChatPage({super.key});
@@ -109,11 +109,13 @@ class _AiChatPageState extends State<AiChatPage> {
     _probing = true;
     try {
       await CameraService.instance.capture(cam);
-      if (mounted && _camState != _camOnline)
+      if (mounted && _camState != _camOnline) {
         setState(() => _camState = _camOnline);
+      }
     } catch (_) {
-      if (mounted && _camState != _camOffline)
+      if (mounted && _camState != _camOffline) {
         setState(() => _camState = _camOffline);
+      }
     } finally {
       _probing = false;
     }
@@ -343,31 +345,11 @@ class _AiChatPageState extends State<AiChatPage> {
     );
   }
 
-  /// 执行快捷分析：识图类先取图（在线摄像头优先抓拍，失败/无设备时选手机相机）
+  /// 执行快捷分析：识图类先取图（统一弹出来源选择：在线摄像头/手机相机/云端照片）
   Future<void> _runQuick(_QuickAsk q) async {
     if (_busy) return;
     if (q.needCam && _pendingImage == null) {
-      final store = AppStore.instance;
-      Uint8List? jpeg;
-      // 云端模式：直接用 ESP32-CAM 定时上传的最新云照片
-      if (store.linkState == 'cloud' && store.cloudPhoto != null) {
-        jpeg = store.cloudPhoto;
-      }
-      // 优先在线摄像头：已配置且未判离线时直接抓拍（快捷操作不弹层）
-      final cam = _camUrl;
-      if (jpeg == null && cam != null && _camState != _camOffline) {
-        try {
-          jpeg = await CameraService.instance.capture(cam);
-          if (mounted) setState(() => _camState = _camOnline);
-        } catch (_) {
-          if (mounted) setState(() => _camState = _camOffline);
-          jpeg = null; // 抓拍失败 → 落到来源选择（可改手机相机）
-        }
-      }
-      // 无在线摄像头 / 抓拍失败（人工缸）：弹来源选择
-      if (jpeg == null) {
-        jpeg = await _chooseImageSource();
-      }
+      final jpeg = await _chooseImageSource();
       if (jpeg == null) return;
       if (!mounted) return;
       setState(() => _pendingImage = jpeg);
@@ -461,29 +443,21 @@ class _AiChatPageState extends State<AiChatPage> {
     );
   }
 
-  /// 选择照片来源并取图（在线摄像头抓拍 / 手机相机拍摄）
+  /// 选择照片来源并取图（弹层：在线摄像头 / 手机相机 / 云端最新照片）
   Future<void> _capture() async {
     if (_busy) return;
-    // 云端模式：直接用 ESP32-CAM 定时上传的最新云照片
-    final store = AppStore.instance;
-    if (store.linkState == 'cloud' && store.cloudPhoto != null) {
-      setState(() {
-        _pendingImage = store.cloudPhoto;
-        _camState = _camOnline;
-      });
-      _toast('已取用最新云端照片，发送时 AI 将识图分析');
-      return;
-    }
     final jpeg = await _chooseImageSource();
     if (!mounted || jpeg == null) return;
     setState(() => _pendingImage = jpeg);
     _toast('已选取照片，发送时 AI 将识图分析');
   }
 
-  /// 照片来源选择弹层：在线摄像头（ESP32-CAM）/ 手机相机。
+  /// 照片来源选择弹层：在线摄像头（ESP32-CAM）/ 手机相机 / 云端最新照片。
   /// 返回 JPEG 字节（用户取消或失败返回 null）。
   Future<Uint8List?> _chooseImageSource() async {
     final online = _camUrl;
+    final store = AppStore.instance;
+    final hasCloud = store.linkState == 'cloud' && store.cloudPhoto != null;
     final src = await showModalBottomSheet<_ImgSrc>(
       context: context,
       backgroundColor: Colors.white,
@@ -514,6 +488,14 @@ class _AiChatPageState extends State<AiChatPage> {
               subtitle: const Text('调起手机相机拍摄鱼缸（人工缸推荐）'),
               onTap: () => Navigator.pop(ctx, _ImgSrc.phone),
             ),
+            if (hasCloud)
+              ListTile(
+                leading:
+                    const Icon(Icons.cloud_outlined, color: AppTheme.tealDark),
+                title: const Text('云端最新照片'),
+                subtitle: const Text('ESP32-CAM 定时上传的最新画面'),
+                onTap: () => Navigator.pop(ctx, _ImgSrc.cloud),
+              ),
             const SizedBox(height: 10),
           ],
         ),
@@ -534,6 +516,10 @@ class _AiChatPageState extends State<AiChatPage> {
         }
         return null;
       }
+    }
+
+    if (src == _ImgSrc.cloud) {
+      return store.cloudPhoto; // 弹层时已判非空；理论上不会为 null
     }
 
     try {

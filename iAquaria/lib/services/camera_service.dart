@@ -2,10 +2,10 @@
 ///
 /// 说明：
 /// - 在线摄像头：纯 Dart HTTP 拉取 ESP32-CAM 的 /capture 帧，地址存缸档案 camUrl；
-/// - 手机相机：image_picker 经系统相机 Intent 拍照（人工缸/无监控时识图识别用），
-///   鸿蒙无平台实现，抛 UnsupportedError 由调用方提示；
-/// - ESP32-CAM 服务：/ 状态、/capture 单帧 JPEG、:81/stream MJPEG；
-/// - 摄像头地址保存在缸档案 camUrl，如 http://192.168.3.191。
+/// - 手机相机：image_picker 经系统相机拍照（人工缸/无监控时识图识别用），
+///   安卓/iOS 走官方实现，鸿蒙走 openharmony-tpc 的 image_picker_ohos（见 pubspec）；
+///   极端情况下平台通道异常时抛 UnsupportedError，由调用方兜底提示；
+/// - ESP32-CAM 服务：/ 状态、/capture 单帧 JPEG、:81/stream MJPEG。
 library;
 
 import 'dart:typed_data';
@@ -40,7 +40,7 @@ class CameraService {
   }
 
   /// 调起手机系统相机拍照，返回 JPEG 字节。
-  /// 用户取消返回 null；平台不支持（鸿蒙）抛 UnsupportedError。
+  /// 用户取消返回 null；平台通道异常（无平台实现）抛 UnsupportedError。
   Future<Uint8List?> pickFromPhoneCamera() async {
     try {
       final XFile? f = await ImagePicker().pickImage(
@@ -53,7 +53,7 @@ class CameraService {
     } on UnsupportedError {
       rethrow;
     } catch (e) {
-      // MissingPluginException（鸿蒙）等 → 统一转不支持异常，调用方友好提示
+      // 平台通道未注册等异常 → 转不支持异常，调用方友好提示
       throw UnsupportedError('当前平台不支持手机相机：$e');
     }
   }

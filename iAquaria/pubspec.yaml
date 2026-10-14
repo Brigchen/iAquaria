@@ -34,7 +34,8 @@ dependencies:
   cupertino_icons: 1.0.6
 
   # ── 手机相机：人工缸/无监控摄像头时，调系统相机拍照供 AI 识图识别 ──
-  #    通过系统相机 Intent 拍照（无需 CAMERA 权限）；鸿蒙无平台实现，调用时捕获提示
+  #    安卓/iOS 走官方 1.1.2（系统相机 Intent，无需 CAMERA 权限）；
+  #    鸿蒙平台实现见下方 dependency_overrides 的 image_picker_ohos
   image_picker: 1.1.2
 
 # ── OpenHarmony 适配：shared_preferences 伞包 + ohos 平台实现 ──
@@ -65,6 +66,24 @@ dependency_overrides:
       url: https://gitcode.com/openharmony-tpc/flutter_packages.git
       path: packages/path_provider/path_provider_ohos
       ref: br_path_provider-v2.1.4_ohos
+  # image_picker 鸿蒙适配（openharmony-tpc，官方 pub 版无 ohos 实现）：
+  #   必须同时覆盖三件套（伞包 + 平台接口 + ohos 实现），缺一会出现
+  #   MissingPluginException / 通道未注册（image_picker_ohos 未被拉入依赖）
+  image_picker:
+    git:
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/image_picker/image_picker
+      ref: br_image_picker-v1.1.2_ohos
+  image_picker_platform_interface:
+    git:
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/image_picker/image_picker_platform_interface
+      ref: br_image_picker-v1.1.2_ohos
+  image_picker_ohos:
+    git:
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/image_picker/image_picker_ohos
+      ref: br_image_picker-v1.1.2_ohos
 
 # 说明：OpenAI 协议 LLM 客户端自实现 SSE 流式客户端（lib/services/llm_service.dart），
 # 协议与 openai_dart 完全兼容（DeepSeek / 通义千问 / GLM / 豆包），支持流式输出与多模态识图。

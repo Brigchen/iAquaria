@@ -1,4 +1,4 @@
-﻿/// 计划页：周期养护任务管理。
+/// 计划页：周期养护任务管理。
 /// - 分组：已逾期 / 今天 / 即将到期（3 天内）/ 稍后（4 天起全量显示——
 ///   修复此前"新建任务 nextDue 超出 3 天不属任何分组导致整页空白"的 bug）
 /// - 任务支持指定每日时刻（"HH:mm"，可选）；到点 App 内横幅提醒（每任务
@@ -27,6 +27,7 @@ class _PlanPageState extends State<PlanPage> {
   Timer? _remindTimer;
   final Set<String> _reminded = {}; // 会话内已提醒标记 <taskId>_<yyyyMMdd>
   String _loadedTank = ''; // 完成统计已加载的缸 id（切缸时重载）
+  int _loadedVer = 0; // 完成统计加载时的数据版本（云同步改写后重载）
   Map<String, List<JournalEntry>> _doneBy = {}; // 任务 id → 完成日志（最新在前）
 
   @override
@@ -54,8 +55,7 @@ class _PlanPageState extends State<PlanPage> {
     final tasks = await store.st.tasks(tank.id);
     if (!mounted) return;
     final now = DateTime.now();
-    final ymd =
-        '${now.year}${_p2(now.month)}${_p2(now.day)}';
+    final ymd = '${now.year}${_p2(now.month)}${_p2(now.day)}';
     for (final t in tasks) {
       final key = '${t.id}_$ymd';
       if (_reminded.contains(key)) continue;
@@ -72,9 +72,10 @@ class _PlanPageState extends State<PlanPage> {
       }
       if (msg == null) continue;
       _reminded.add(key);
+      final taskId = t.id;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 6),
         content: Row(
           children: [
             const Icon(Icons.alarm, color: Colors.white, size: 18),
@@ -82,8 +83,94 @@ class _PlanPageState extends State<PlanPage> {
             Expanded(child: Text(msg, style: const TextStyle(fontSize: 13))),
           ],
         ),
+        // 点击「去处理」：跳到计划页并弹出该任务的处理面板
+        action: SnackBarAction(
+          label: '去处理',
+          textColor: Colors.white,
+          onPressed: () => AppStore.instance.requestTask(taskId),
+        ),
       ));
     }
+  }
+
+  /// 计划页 build 检测到待处理任务（提醒横幅跳转而来）→ 弹出处理面板。
+  /// 每次只处理一次（取走 pendingTaskId，不回通知避免重入）。
+  Future<void> _openPendingTask() async {
+    final store = AppStore.instance;
+    final taskId = store.pendingTaskId;
+    if (taskId == null) return;
+    store.pendingTaskId = null;
+    final tank = store.activeTank;
+    if (tank == null || !mounted) return;
+    final tasks = await store.st.tasks(tank.id);
+    if (!mounted) return;
+    final hit = tasks.where((x) => x.id == taskId).toList();
+    if (hit.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('任务不存在或已删除'), behavior: SnackBarBehavior.floating));
+      return;
+    }
+    final t = hit.first;
+    final d = _daysTo(t);
+    final dueText = d < 0
+        ? '已逾期 ${-d} 天'
+        : d == 0
+            ? '今天到期${t.time == null ? '' : ' ${t.time}'}'
+            : '$d 天后到期';
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text('「${t.title}」$dueText',
+                        style: const TextStyle(
+                            fontSize: 14.5, fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            ListTile(
+              leading: const Icon(Icons.check_circle_outline,
+                  color: AppTheme.tealDark),
+              title: const Text('完成打卡'),
+              subtitle: Text('完成后顺延 ${t.cycleDays} 天并写入养护日志'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _complete(t);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text('查看完成历史'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showHistory(t);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('编辑 / 删除任务'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _taskMenu(t);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   static String _p2(int v) => v.toString().padLeft(2, '0');
@@ -92,8 +179,8 @@ class _PlanPageState extends State<PlanPage> {
   DateTime _at(String hhmm) {
     final p = hhmm.split(':');
     final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day,
-        int.tryParse(p[0]) ?? 0, int.tryParse(p.length > 1 ? p[1] : '') ?? 0);
+    return DateTime(now.year, now.month, now.day, int.tryParse(p[0]) ?? 0,
+        int.tryParse(p.length > 1 ? p[1] : '') ?? 0);
   }
 
   int _daysTo(TaskEntity t) {
@@ -136,6 +223,19 @@ class _PlanPageState extends State<PlanPage> {
           WidgetsBinding.instance
               .addPostFrameCallback((_) => _loadDone(tank.id));
         }
+        // 云同步合并改写本地数据后：重载完成统计（列表 FutureBuilder 随通知自动重取）
+        if (store.dataVer != _loadedVer) {
+          _loadedVer = store.dataVer;
+          if (tank != null) {
+            WidgetsBinding.instance
+                .addPostFrameCallback((_) => _loadDone(tank.id));
+          }
+        }
+        // 提醒横幅「去处理」跳转而来：弹出对应任务的处理面板
+        if (store.pendingTaskId != null) {
+          WidgetsBinding.instance
+              .addPostFrameCallback((_) => _openPendingTask());
+        }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -146,13 +246,14 @@ class _PlanPageState extends State<PlanPage> {
                 children: [
                   const Text('养护计划',
                       style: TextStyle(
-                    fontSize: 16.5,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.black87)),
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black87)),
                   const Spacer(),
                   TextButton.icon(
-                    onPressed:
-                        tank == null ? null : () => _taskDialog(context, tank.id),
+                    onPressed: tank == null
+                        ? null
+                        : () => _taskDialog(context, tank.id),
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('新增任务'),
                     style: TextButton.styleFrom(
@@ -165,7 +266,8 @@ class _PlanPageState extends State<PlanPage> {
               child: tank == null
                   ? const Center(
                       child: Text('暂无鱼缸，请先在设置页添加',
-                          style: TextStyle(fontSize: 13, color: AppTheme.muted)))
+                          style:
+                              TextStyle(fontSize: 13, color: AppTheme.muted)))
                   : FutureBuilder<List<TaskEntity>>(
                       future: store.st.tasks(tank.id),
                       builder: (context, snap) {
@@ -176,7 +278,8 @@ class _PlanPageState extends State<PlanPage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.event_note_outlined,
-                                  size: 44, color: AppTheme.muted.withOpacity(.6)),
+                                  size: 44,
+                                  color: AppTheme.muted.withOpacity(.6)),
                               const SizedBox(height: 10),
                               const Text('暂无周期任务',
                                   style: TextStyle(
@@ -304,7 +407,8 @@ class _PlanPageState extends State<PlanPage> {
                   foregroundColor: AppTheme.tealDark,
                   padding: const EdgeInsets.symmetric(horizontal: 10)),
               child: const Text('完成 ✓',
-                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                  style:
+                      TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
             ),
           ],
         ),
@@ -337,7 +441,8 @@ class _PlanPageState extends State<PlanPage> {
                 child: list.isEmpty
                     ? const Center(
                         child: Text('暂无完成记录，点任务行的「完成 ✓」打卡后自动写入日志',
-                            style: TextStyle(fontSize: 12.5, color: AppTheme.muted)))
+                            style: TextStyle(
+                                fontSize: 12.5, color: AppTheme.muted)))
                     : ListView.builder(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
@@ -352,10 +457,10 @@ class _PlanPageState extends State<PlanPage> {
                                     size: 15, color: AppTheme.teal),
                                 const SizedBox(width: 8),
                                 Text(
-                                  '${e.ts.year}/${e.ts.month}/${e.ts.day} ${_p2(e.ts.hour)}:${_p2(e.ts.minute)}',
-                                  style: const TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w600)),
+                                    '${e.ts.year}/${e.ts.month}/${e.ts.day} ${_p2(e.ts.hour)}:${_p2(e.ts.minute)}',
+                                    style: const TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600)),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
@@ -401,8 +506,7 @@ class _PlanPageState extends State<PlanPage> {
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text('删除任务',
-                  style: TextStyle(color: Colors.red)),
+              title: const Text('删除任务', style: TextStyle(color: Colors.red)),
               onTap: () async {
                 Navigator.pop(ctx);
                 final ok = await showDialog<bool>(
@@ -485,6 +589,7 @@ class _PlanPageState extends State<PlanPage> {
       nextDue: nextDue,
       time: t.time,
       paused: t.paused,
+      upd: DateTime.now().millisecondsSinceEpoch, // 云同步冲突合并用
     );
     all[idx] = updated;
     await store.st.saveTasks(all);
@@ -552,8 +657,8 @@ class _PlanPageState extends State<PlanPage> {
                     const Spacer(),
                     Switch(
                       value: time != null,
-                      onChanged: (v) => setD(() =>
-                          time = v ? const TimeOfDay(hour: 9, minute: 0) : null),
+                      onChanged: (v) => setD(() => time =
+                          v ? const TimeOfDay(hour: 9, minute: 0) : null),
                     ),
                     InkWell(
                       onTap: time == null
@@ -564,8 +669,8 @@ class _PlanPageState extends State<PlanPage> {
                               if (t != null) setD(() => time = t);
                             },
                       child: Container(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
                           color: time == null
                               ? Colors.grey.withOpacity(.12)
@@ -630,9 +735,8 @@ class _PlanPageState extends State<PlanPage> {
         title: title,
         cycleDays: cycle,
         nextDue: next,
-        time: time == null
-            ? null
-            : '${_p2(time!.hour)}:${_p2(time!.minute)}',
+        time: time == null ? null : '${_p2(time!.hour)}:${_p2(time!.minute)}',
+        upd: now.millisecondsSinceEpoch, // 云同步冲突合并用
       ));
       all.sort((a, b) => a.nextDue.compareTo(b.nextDue));
     } else {
@@ -644,10 +748,9 @@ class _PlanPageState extends State<PlanPage> {
           title: title,
           cycleDays: cycle,
           nextDue: ex.nextDue,
-          time: time == null
-              ? null
-              : '${_p2(time!.hour)}:${_p2(time!.minute)}',
+          time: time == null ? null : '${_p2(time!.hour)}:${_p2(time!.minute)}',
           paused: ex.paused,
+          upd: DateTime.now().millisecondsSinceEpoch, // 云同步冲突合并用
         );
       }
     }

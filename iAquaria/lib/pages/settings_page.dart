@@ -6,7 +6,10 @@ import 'package:flutter/material.dart';
 import '../core/platform_utils.dart';
 import '../core/theme.dart';
 import '../core/version.dart';
+import '../app.dart';
+import '../services/demo_data_service.dart';
 import '../services/storage_service.dart';
+import '../services/sync_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -17,9 +20,15 @@ class SettingsPage extends StatefulWidget {
 
 /// 快捷预设：服务商 → [接口地址, 默认模型名]（2026-09 核对，多模态优先）
 const _llmPresets = <String, List<String>>{
-  '通义千问': ['https://llm-54er3r3q5452ofct.cn-beijing.maas.aliyuncs.com/compatible-mode/v1', 'qwen3.8-flash'],
+  '通义千问': [
+    'https://llm-54er3r3q5452ofct.cn-beijing.maas.aliyuncs.com/compatible-mode/v1',
+    'qwen3.8-flash'
+  ],
   '智谱GLM': ['https://open.bigmodel.cn/api/paas/v4', 'glm-5.3-flash'],
-  '豆包': ['https://ark.cn-beijing.volces.com/api/v3', 'doubao-seed-2-1-pro-260628'],
+  '豆包': [
+    'https://ark.cn-beijing.volces.com/api/v3',
+    'doubao-seed-2-1-pro-260628'
+  ],
   'DeepSeek': ['https://api.deepseek.com', 'deepseek-flash'],
   'Kimi': ['https://api.moonshot.cn/v1', 'kimi-k3'],
 };
@@ -28,6 +37,8 @@ class _SettingsPageState extends State<SettingsPage> {
   final _keyCtrl = TextEditingController();
   final _baseUrlCtrl = TextEditingController();
   final _modelCtrl = TextEditingController();
+  bool _syncEnabled = true; // 日志与计划云同步开关（默认开）
+  bool _demoOn = false; // 演示模式（示例数据 + 模拟遥测）
   final _cloudHostCtrl = TextEditingController();
   final _cloudPortCtrl = TextEditingController();
   final _cloudUserCtrl = TextEditingController();
@@ -49,7 +60,50 @@ class _SettingsPageState extends State<SettingsPage> {
     _cloudPortCtrl.text = port > 0 ? '$port' : '';
     _cloudUserCtrl.text = await st.cloudUser();
     _cloudPassCtrl.text = await st.cloudPass();
+    _syncEnabled = await SyncService.instance.enabled();
+    _demoOn = await DemoDataService.instance.enabled();
     if (mounted) setState(() {});
+  }
+
+  /// 演示模式开关：确认后播种示例数据 + 模拟遥测
+  Future<void> _toggleDemo(bool v) async {
+    if (v && AppStore.instance.activeTank == null) {
+      _toast('请先在「鱼缸」Tab 添加并选择鱼缸');
+      return;
+    }
+    if (v) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('开启演示模式？'),
+          content: const Text('将向当前缸写入示例养护日志、周期计划与生物清单'
+              '（仅在对应内容为空时写入，不覆盖已有记录），并每 10 秒模拟一帧'
+              '遥测让概览数据动起来。\n\n关闭后停止模拟遥测；已写入的记录保留，'
+              '日志可长按删除。'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('取消')),
+            FilledButton(
+                style:
+                    FilledButton.styleFrom(backgroundColor: AppTheme.tealDark),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('开启')),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
+    setState(() => _demoOn = v);
+    await DemoDataService.instance.setEnabled(v);
+    _toast(v ? '演示数据已写入当前缸，模拟遥测已开启' : '已关闭演示模式（已写入的记录保留，日志长按可删）');
+  }
+
+  /// 日志与计划云同步开关
+  Future<void> _toggleSync(bool v) async {
+    setState(() => _syncEnabled = v);
+    await SyncService.instance.setEnabled(v);
+    _toast(v ? '云同步已开启：云端在线时自动双向合并' : '云同步已关闭：数据仅存本机');
   }
 
   @override
@@ -80,10 +134,11 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 10),
             _field('接口地址 Base URL', _baseUrlCtrl,
-                hint: 'https://llm-xxx.cn-beijing.maas.aliyuncs.com/compatible-mode/v1'),
+                hint:
+                    'https://llm-xxx.cn-beijing.maas.aliyuncs.com/compatible-mode/v1'),
             _field('模型名', _modelCtrl, hint: 'qwen3.8-flash / glm-5.3-flash'),
-            _field('API Key（仅保存在本机）', _keyCtrl, obscure: true, required: true,
-                hint: '禁止硬编码；生产建议后端中转'),
+            _field('API Key（仅保存在本机）', _keyCtrl,
+                obscure: true, required: true, hint: '禁止硬编码；生产建议后端中转'),
             const _SecurityNote(),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: AppTheme.tealDark),
@@ -113,27 +168,66 @@ class _SettingsPageState extends State<SettingsPage> {
           // ── 云查看（EMQX 云 Broker：局域网外远程查看数据）──
           const _SectionTitle('云查看（局域网外）'),
           _card([
-            const Text('设备把遥测/事件上行到云 Broker；手机不在家时 App 自动'
-                    '经云端订阅查看（只读，无需路由器端口映射）。',
+            const Text(
+                '设备把遥测/事件上行到云 Broker；手机不在家时 App 自动'
+                '经云端订阅查看（只读，无需路由器端口映射）。',
                 style: TextStyle(fontSize: 12, color: AppTheme.muted)),
             const SizedBox(height: 6),
             const Text('· 设备端：在主板 Web「云链路」页填同一 Broker 并启用',
                 style: TextStyle(fontSize: 12, color: AppTheme.muted)),
-            const Text('· 鱼缸：添加缸时填云查看设备 ID（如 iaqua-84d4）',
+            const Text('· 鱼缸：添加缸时填云查看设备 ID（如 iaqua-xxxx）',
                 style: TextStyle(fontSize: 12, color: AppTheme.muted)),
             const SizedBox(height: 8),
-            _field('Broker 地址', _cloudHostCtrl, required: true,
-                hint: '如 xxxx.ala.cn-hangzhou.emqxsl.cn'),
+            _field('Broker 地址', _cloudHostCtrl,
+                required: true, hint: '如 xxxx.ala.cn-hangzhou.emqxsl.cn'),
             Row(children: [
               Expanded(child: _field('端口（WSS）', _cloudPortCtrl, hint: '8084')),
               const SizedBox(width: 8),
               Expanded(child: _field('用户名', _cloudUserCtrl)),
             ]),
             _field('密码（仅存本机）', _cloudPassCtrl, obscure: true),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              activeColor: AppTheme.tealDark,
+              value: _syncEnabled,
+              onChanged: _toggleSync,
+              title: const Text('日志与计划云同步',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              subtitle: const Text(
+                  '多台手机经云 Broker 自动双向合并养护日志与周期计划'
+                  '（含删除）；仅云端在线时产生流量，局域网直连不消耗',
+                  style: TextStyle(fontSize: 11.5, color: AppTheme.muted)),
+            ),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: AppTheme.tealDark),
               onPressed: _saveCloud,
               child: const Text('保存云查看配置'),
+            ),
+          ]),
+          const SizedBox(height: 14),
+
+          // ── 演示数据（示意/截图用）──
+          const _SectionTitle('演示数据'),
+          _card([
+            const Text(
+                '一键写入示例养护日志、周期计划与生物清单，并模拟遥测'
+                '（10 秒一帧）让概览数据卡、计划提醒、告警都有完整示意效果，'
+                '适合演示与文档截图。',
+                style: TextStyle(fontSize: 12, color: AppTheme.muted)),
+            const SizedBox(height: 6),
+            const Text('· 仅在对应内容为空时写入，不覆盖已有记录',
+                style: TextStyle(fontSize: 12, color: AppTheme.muted)),
+            const Text('· 关闭后停止模拟遥测；已写入的日志长按可删',
+                style: TextStyle(fontSize: 12, color: AppTheme.muted)),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              activeColor: AppTheme.tealDark,
+              value: _demoOn,
+              onChanged: _toggleDemo,
+              title: const Text('演示模式',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              subtitle: const Text('示例日志 / 周期计划 / 生物清单 + 模拟遥测',
+                  style: TextStyle(fontSize: 11.5, color: AppTheme.muted)),
             ),
           ]),
           const SizedBox(height: 14),
@@ -196,7 +290,8 @@ class _SettingsPageState extends State<SettingsPage> {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFFe2e8f0)),
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, children: children),
       );
 
   Widget _field(String label, TextEditingController c,
@@ -220,8 +315,8 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _toast(String s) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s), behavior: SnackBarBehavior.floating));
+  void _toast(String s) => ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(s), behavior: SnackBarBehavior.floating));
 }
 
 class _SectionTitle extends StatelessWidget {
@@ -231,7 +326,11 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppTheme.muted)),
+        child: Text(title,
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.muted)),
       );
 }
 

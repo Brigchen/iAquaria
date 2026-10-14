@@ -29,7 +29,15 @@ class _JournalPageState extends State<JournalPage> {
   String _filter = '全部';
   bool _last48h = true; // true=最近48小时；false=全部历史
 
-  static const _types = ['全部', JournalEntry.typeWater, JournalEntry.typeChange, JournalEntry.typeFeed, JournalEntry.typeMaintain, JournalEntry.typeDevice, JournalEntry.typeOther];
+  static const _types = [
+    '全部',
+    JournalEntry.typeWater,
+    JournalEntry.typeChange,
+    JournalEntry.typeFeed,
+    JournalEntry.typeMaintain,
+    JournalEntry.typeDevice,
+    JournalEntry.typeOther
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +57,9 @@ class _JournalPageState extends State<JournalPage> {
               final cutoff = DateTime.now().subtract(const Duration(hours: 48));
               all = all.where((e) => e.ts.isAfter(cutoff)).toList();
             }
-            final list = _filter == '全部' ? all : all.where((e) => e.type == _filter).toList();
+            final list = _filter == '全部'
+                ? all
+                : all.where((e) => e.type == _filter).toList();
             return Scaffold(
               // 顶部常驻按钮已覆盖新增/导出，不再放悬浮按钮避免重复
               body: Column(
@@ -66,9 +76,12 @@ class _JournalPageState extends State<JournalPage> {
                               side: const BorderSide(color: AppTheme.teal),
                               padding: const EdgeInsets.symmetric(vertical: 4),
                             ),
-                            onPressed: tank == null ? null : () => _newWaterMeasure(context, tank.id),
+                            onPressed: tank == null
+                                ? null
+                                : () => _newWaterMeasure(context, tank.id),
                             icon: const Icon(Icons.science, size: 16),
-                            label: const Text('水质检测', style: TextStyle(fontSize: 12.5)),
+                            label: const Text('水质检测',
+                                style: TextStyle(fontSize: 12.5)),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -79,9 +92,12 @@ class _JournalPageState extends State<JournalPage> {
                               side: const BorderSide(color: AppTheme.teal),
                               padding: const EdgeInsets.symmetric(vertical: 4),
                             ),
-                            onPressed: tank == null ? null : () => _newRecord(context, tank.id),
+                            onPressed: tank == null
+                                ? null
+                                : () => _newRecord(context, tank.id),
                             icon: const Icon(Icons.add, size: 16),
-                            label: const Text('新增记录', style: TextStyle(fontSize: 12.5)),
+                            label: const Text('新增记录',
+                                style: TextStyle(fontSize: 12.5)),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -92,9 +108,12 @@ class _JournalPageState extends State<JournalPage> {
                               side: const BorderSide(color: AppTheme.teal),
                               padding: const EdgeInsets.symmetric(vertical: 4),
                             ),
-                            onPressed: tank == null ? null : () => _exportDialog(context),
+                            onPressed: tank == null
+                                ? null
+                                : () => _exportDialog(context),
                             icon: const Icon(Icons.ios_share, size: 15),
-                            label: const Text('导出', style: TextStyle(fontSize: 12.5)),
+                            label: const Text('导出',
+                                style: TextStyle(fontSize: 12.5)),
                           ),
                         ),
                       ],
@@ -112,20 +131,24 @@ class _JournalPageState extends State<JournalPage> {
                           padding: const EdgeInsets.only(right: 8),
                           child: ChoiceChip(
                             label: Text(_last48h ? '范围：48小时内' : '范围：全部历史',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                style: const TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.w600)),
                             selected: true,
                             selectedColor: AppTheme.tealLight,
-                            onSelected: (_) => setState(() => _last48h = !_last48h),
+                            onSelected: (_) =>
+                                setState(() => _last48h = !_last48h),
                           ),
                         ),
                         ..._types
                             .map((t) => Padding(
                                   padding: const EdgeInsets.only(right: 8),
                                   child: ChoiceChip(
-                                    label: Text(t, style: const TextStyle(fontSize: 12)),
+                                    label: Text(t,
+                                        style: const TextStyle(fontSize: 12)),
                                     selected: _filter == t,
                                     selectedColor: AppTheme.tealLight,
-                                    onSelected: (_) => setState(() => _filter = t),
+                                    onSelected: (_) =>
+                                        setState(() => _filter = t),
                                   ),
                                 ))
                             .toList(),
@@ -136,14 +159,19 @@ class _JournalPageState extends State<JournalPage> {
                     child: list.isEmpty
                         ? Center(
                             child: Text(
-                            _last48h ? '48小时内暂无记录，可切换到全部历史' : '暂无记录，点上方「新增记录」添加',
-                            style: const TextStyle(color: AppTheme.muted, fontSize: 12.5),
+                            _last48h
+                                ? '48小时内暂无记录，可切换到全部历史'
+                                : '暂无记录，点上方「新增记录」添加',
+                            style: const TextStyle(
+                                color: AppTheme.muted, fontSize: 12.5),
                           ))
                         : ListView.separated(
                             padding: const EdgeInsets.all(14),
                             itemCount: list.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 8),
-                            itemBuilder: (_, i) => _item(context, tank?.id ?? '', list[i]),
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (_, i) =>
+                                _item(context, tank?.id ?? '', list[i]),
                           ),
                   ),
                 ],
@@ -156,63 +184,83 @@ class _JournalPageState extends State<JournalPage> {
   }
 
   Widget _item(BuildContext context, String tankId, JournalEntry e) {
-    final time = '${e.ts.month}/${e.ts.day} ${e.ts.hour.toString().padLeft(2, '0')}:${e.ts.minute.toString().padLeft(2, '0')}';
+    final time =
+        '${e.ts.month}/${e.ts.day} ${e.ts.hour.toString().padLeft(2, '0')}:${e.ts.minute.toString().padLeft(2, '0')}';
     // 长按删除：误输入/错误记录可清理（不影响设备自动记录的重新生成）
     return GestureDetector(
       onLongPress: () => _confirmDelete(context, tankId, e),
       child: Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFe2e8f0)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38, height: 38,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: AppTheme.tealLight, borderRadius: BorderRadius.circular(10)),
-            child: Text(e.type.characters.first, style: const TextStyle(color: AppTheme.tealDark, fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Text(e.type, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-                  if (e.auto)
-                    Container(
-                      margin: const EdgeInsets.only(left: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(color: AppTheme.tealLight, borderRadius: BorderRadius.circular(6)),
-                      child: const Text('自动', style: TextStyle(fontSize: 10, color: AppTheme.tealDark)),
-                    ),
-                ]),
-                const SizedBox(height: 2),
-                Text(e.note, style: const TextStyle(fontSize: 12.5, color: AppTheme.muted)),
-              ],
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFe2e8f0)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                  color: AppTheme.tealLight,
+                  borderRadius: BorderRadius.circular(10)),
+              child: Text(e.type.characters.first,
+                  style: const TextStyle(
+                      color: AppTheme.tealDark, fontWeight: FontWeight.bold)),
             ),
-          ),
-          Text(time, style: const TextStyle(fontSize: 11, color: AppTheme.muted)),
-        ],
-      ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Text(e.type,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 13.5)),
+                    if (e.auto)
+                      Container(
+                        margin: const EdgeInsets.only(left: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                            color: AppTheme.tealLight,
+                            borderRadius: BorderRadius.circular(6)),
+                        child: const Text('自动',
+                            style: TextStyle(
+                                fontSize: 10, color: AppTheme.tealDark)),
+                      ),
+                  ]),
+                  const SizedBox(height: 2),
+                  Text(e.note,
+                      style: const TextStyle(
+                          fontSize: 12.5, color: AppTheme.muted)),
+                ],
+              ),
+            ),
+            Text(time,
+                style: const TextStyle(fontSize: 11, color: AppTheme.muted)),
+          ],
+        ),
       ),
     );
   }
 
   // ───────────── 长按删除 ─────────────
 
-  Future<void> _confirmDelete(BuildContext context, String tankId, JournalEntry e) async {
+  Future<void> _confirmDelete(
+      BuildContext context, String tankId, JournalEntry e) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('删除这条记录？'),
-        content: Text('「${e.type}」${e.note.length > 40 ? '${e.note.substring(0, 40)}…' : e.note}\n\n删除后不可恢复。',
+        content: Text(
+            '「${e.type}」${e.note.length > 40 ? '${e.note.substring(0, 40)}…' : e.note}\n\n删除后不可恢复。',
             style: const TextStyle(fontSize: 13)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppTheme.danger),
             onPressed: () => Navigator.pop(ctx, true),
@@ -246,7 +294,8 @@ class _JournalPageState extends State<JournalPage> {
           ListTile(
             leading: const Icon(Icons.menu_book, color: AppTheme.tealDark),
             title: const Text('导出日志', style: TextStyle(fontSize: 13.5)),
-            subtitle: const Text('养护记录时间线（人工 + 设备自动）', style: TextStyle(fontSize: 11.5)),
+            subtitle: const Text('养护记录时间线（人工 + 设备自动）',
+                style: TextStyle(fontSize: 11.5)),
             onTap: () {
               Navigator.pop(ctx);
               final tank = AppStore.instance.activeTank;
@@ -274,15 +323,18 @@ class _JournalPageState extends State<JournalPage> {
   /// 文件名（Android/鸿蒙系统保存界面默认落在 Documents；Windows=另存为）。
   /// 默认文件名 = 类型_缸名_时间戳.csv。系统对话框异常时回退应用文档目录，
   /// 再失败兜底剪贴板。
-  Future<void> _writeCsv(
-      ScaffoldMessengerState messenger, String csv, String fileName, int rows) async {
+  Future<void> _writeCsv(ScaffoldMessengerState messenger, String csv,
+      String fileName, int rows) async {
     // 文件名安全清洗：缸名可能含路径非法字符；空缸名兜底，避免出现「日志_.csv」
     final safe = fileName
         .replaceAll(RegExp(r'[\\/:*?"<>|]'), '-')
         .replaceAll(RegExp(r'\s+'), '')
         .trim();
     final base = safe.isEmpty ? '未命名缸' : safe;
-    final stamp = DateTime.now().toIso8601String().substring(0, 19).replaceAll(RegExp('[:T]'), '-');
+    final stamp = DateTime.now()
+        .toIso8601String()
+        .substring(0, 19)
+        .replaceAll(RegExp('[:T]'), '-');
     final name = '${base}_$stamp';
     final bytes = Uint8List.fromList(utf8.encode(csv));
     try {
@@ -321,18 +373,19 @@ class _JournalPageState extends State<JournalPage> {
           behavior: SnackBarBehavior.floating));
     } catch (_) {
       await Clipboard.setData(ClipboardData(text: csv));
-      messenger.showSnackBar(
-          const SnackBar(content: Text('写文件失败，已复制到剪贴板'), behavior: SnackBarBehavior.floating));
+      messenger.showSnackBar(const SnackBar(
+          content: Text('写文件失败，已复制到剪贴板'), behavior: SnackBarBehavior.floating));
     }
   }
 
   /// 导出当前缸全部日志为 CSV（带 BOM，Excel 可直接打开）
-  Future<void> _export(BuildContext context, String tankId, String tankName) async {
+  Future<void> _export(
+      BuildContext context, String tankId, String tankName) async {
     final messenger = ScaffoldMessenger.of(context);
     final all = await AppStore.instance.st.journals(tankId);
     if (all.isEmpty) {
-      messenger.showSnackBar(
-          const SnackBar(content: Text('暂无日志可导出'), behavior: SnackBarBehavior.floating));
+      messenger.showSnackBar(const SnackBar(
+          content: Text('暂无日志可导出'), behavior: SnackBarBehavior.floating));
       return;
     }
     final sb = StringBuffer('\uFEFF时间,类型,来源,内容\r\n');
@@ -346,7 +399,8 @@ class _JournalPageState extends State<JournalPage> {
 
   /// 导出当前缸本机数据（自动遥测 + 人工测量）为宽表 CSV：
   /// 列 = 时间/来源/固定参数（按协议键序）/自定义参数
-  Future<void> _exportData(BuildContext context, String tankId, String tankName) async {
+  Future<void> _exportData(
+      BuildContext context, String tankId, String tankName) async {
     final messenger = ScaffoldMessenger.of(context);
     final recs = await LocalDataService.instance.all(tankId);
     if (recs.isEmpty) {
@@ -356,7 +410,20 @@ class _JournalPageState extends State<JournalPage> {
       return;
     }
     // 列集合：固定键在前，其余（自定义 c_* 等）按出现顺序追加
-    const fixed = ['temp', 'ph', 'orp', 'tds1', 'tds2', 'lux', 'lvl', 'no3', 'po4', 'nh4', 'kh', 'ca'];
+    const fixed = [
+      'temp',
+      'ph',
+      'temp_ph',
+      'tds1',
+      'tds2',
+      'lux',
+      'lvl',
+      'no3',
+      'po4',
+      'nh4',
+      'kh',
+      'ca'
+    ];
     final extra = <String>[];
     for (final r in recs) {
       final v = Map<String, dynamic>.from(r['v'] as Map);
@@ -366,14 +433,23 @@ class _JournalPageState extends State<JournalPage> {
     }
     // 表头（含单位）
     final labelOf = <String, String>{
-      'temp': '水温(℃)', 'ph': 'pH', 'orp': 'ORP(mV)',
-      'tds1': 'TDS1/盐度', 'tds2': 'TDS2', 'lux': '光照(lx)', 'lvl': '水位(%)',
-      'no3': '硝酸盐(mg/L)', 'po4': '磷酸盐(mg/L)', 'nh4': '铵盐(mg/L)',
-      'kh': '碱度KH(dKH)', 'ca': '钙(mg/L)',
+      'temp': '水温(℃)',
+      'ph': 'pH',
+      'temp_ph': '水温(pH)(℃)',
+      'tds1': 'TDS1/盐度',
+      'tds2': 'TDS2',
+      'lux': '光照(lx)',
+      'lvl': '水位(%)',
+      'no3': '硝酸盐(mg/L)',
+      'po4': '磷酸盐(mg/L)',
+      'nh4': '铵盐(mg/L)',
+      'kh': '碱度KH(dKH)',
+      'ca': '钙(mg/L)',
     };
     final cols = [...fixed, ...extra];
     final srcName = {'lan': '局域网', 'cloud': '云端', 'manual': '人工'};
-    final sb = StringBuffer('\uFEFF时间,来源,${cols.map((k) => labelOf[k] ?? k).join(',')}\r\n');
+    final sb = StringBuffer(
+        '\uFEFF时间,来源,${cols.map((k) => labelOf[k] ?? k).join(',')}\r\n');
     var n = 0;
     for (final r in recs) {
       final ts = DateTime.fromMillisecondsSinceEpoch((r['ts'] as int) * 1000)
@@ -405,20 +481,35 @@ class _JournalPageState extends State<JournalPage> {
               value: typeCtrl.text,
               // 水质检测走顶部独立按键（结构化表单），此处不再提供，避免重复入口
               items: const [
-                DropdownMenuItem(value: JournalEntry.typeChange, child: Text(JournalEntry.typeChange)),
-                DropdownMenuItem(value: JournalEntry.typeFeed, child: Text(JournalEntry.typeFeed)),
-                DropdownMenuItem(value: JournalEntry.typeMaintain, child: Text(JournalEntry.typeMaintain)),
-                DropdownMenuItem(value: JournalEntry.typeOther, child: Text(JournalEntry.typeOther)),
+                DropdownMenuItem(
+                    value: JournalEntry.typeChange,
+                    child: Text(JournalEntry.typeChange)),
+                DropdownMenuItem(
+                    value: JournalEntry.typeFeed,
+                    child: Text(JournalEntry.typeFeed)),
+                DropdownMenuItem(
+                    value: JournalEntry.typeMaintain,
+                    child: Text(JournalEntry.typeMaintain)),
+                DropdownMenuItem(
+                    value: JournalEntry.typeOther,
+                    child: Text(JournalEntry.typeOther)),
               ],
               onChanged: (v) => typeCtrl.text = v ?? JournalEntry.typeOther,
               decoration: const InputDecoration(labelText: '类型'),
             ),
-            TextField(controller: noteCtrl, decoration: const InputDecoration(labelText: '备注（如：换水 30%，GH6·KH8）')),
+            TextField(
+                controller: noteCtrl,
+                decoration:
+                    const InputDecoration(labelText: '备注（如：换水 30%，GH6·KH8）')),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('保存')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('保存')),
         ],
       ),
     );
@@ -443,7 +534,7 @@ class _JournalPageState extends State<JournalPage> {
     final params = <List<String>>[
       ['temp', '水温', '℃'],
       ['ph', 'pH', ''],
-      ['orp', 'ORP', 'mV'],
+      ['temp_ph', '水温(pH)', '℃'],
       if (Metrics.isSalt(wt))
         ['tds1', '盐度', '‰']
       else ...[
@@ -497,15 +588,24 @@ class _JournalPageState extends State<JournalPage> {
                       context: ctx,
                       builder: (ctx2) => AlertDialog(
                         title: const Text('自定义参数'),
-                        content: Column(mainAxisSize: MainAxisSize.min, children: [
-                          TextField(controller: nameCtrl,
-                              decoration: const InputDecoration(labelText: '参数名（如：镁 Mg）')),
-                          TextField(controller: unitCtrl,
-                              decoration: const InputDecoration(labelText: '单位（选填，如 mg/L）')),
+                        content:
+                            Column(mainAxisSize: MainAxisSize.min, children: [
+                          TextField(
+                              controller: nameCtrl,
+                              decoration: const InputDecoration(
+                                  labelText: '参数名（如：镁 Mg）')),
+                          TextField(
+                              controller: unitCtrl,
+                              decoration: const InputDecoration(
+                                  labelText: '单位（选填，如 mg/L）')),
                         ]),
                         actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx2, false), child: const Text('取消')),
-                          FilledButton(onPressed: () => Navigator.pop(ctx2, true), child: const Text('添加')),
+                          TextButton(
+                              onPressed: () => Navigator.pop(ctx2, false),
+                              child: const Text('取消')),
+                          FilledButton(
+                              onPressed: () => Navigator.pop(ctx2, true),
+                              child: const Text('添加')),
                         ],
                       ),
                     );
@@ -513,7 +613,8 @@ class _JournalPageState extends State<JournalPage> {
                       final name = nameCtrl.text.trim();
                       final unit = unitCtrl.text.trim();
                       // 记忆自定义参数（下次表单自动出现）
-                      final list = await LocalDataService.instance.customMetrics();
+                      final list =
+                          await LocalDataService.instance.customMetrics();
                       if (!list.any((e) => e['name'] == name)) {
                         list.add({'name': name, 'unit': unit});
                         await LocalDataService.instance.saveCustomMetrics(list);
@@ -522,14 +623,19 @@ class _JournalPageState extends State<JournalPage> {
                     }
                   },
                   icon: const Icon(Icons.add, size: 16),
-                  label: const Text('新增自定义参数', style: TextStyle(fontSize: 12.5)),
+                  label:
+                      const Text('新增自定义参数', style: TextStyle(fontSize: 12.5)),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('保存')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('取消')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('保存')),
           ],
         ),
       ),

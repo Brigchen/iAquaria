@@ -54,7 +54,8 @@ class _TankPageState extends State<TankPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('编辑「${t.name}」',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+              style:
+                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
           const Text('修改 IP / 摄像头 / 云查看主题等，保存后自动重连设备。',
               style: TextStyle(fontSize: 11.5, color: AppTheme.muted)),
@@ -92,7 +93,8 @@ class _TankPageState extends State<TankPage> {
             children: [
               Expanded(
                 child: Text(t.name,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w800)),
               ),
               // 操作按钮：右上角（Wrap 窄屏自动换行，不溢出）
               Wrap(
@@ -101,7 +103,8 @@ class _TankPageState extends State<TankPage> {
                 alignment: WrapAlignment.end,
                 children: [
                   TextButton.icon(
-                    style: TextButton.styleFrom(foregroundColor: AppTheme.tealDark),
+                    style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.tealDark),
                     icon: const Icon(Icons.tune, size: 18),
                     label: const Text('自动运行', style: TextStyle(fontSize: 12.5)),
                     onPressed: () {
@@ -111,13 +114,15 @@ class _TankPageState extends State<TankPage> {
                     },
                   ),
                   TextButton.icon(
-                    style: TextButton.styleFrom(foregroundColor: AppTheme.tealDark),
+                    style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.tealDark),
                     icon: const Icon(Icons.edit_outlined, size: 18),
                     label: const Text('编辑', style: TextStyle(fontSize: 12.5)),
                     onPressed: () => setState(() => _editTarget = t),
                   ),
                   TextButton.icon(
-                    style: TextButton.styleFrom(foregroundColor: AppTheme.danger),
+                    style:
+                        TextButton.styleFrom(foregroundColor: AppTheme.danger),
                     icon: const Icon(Icons.delete_outline, size: 18),
                     label: const Text('删除', style: TextStyle(fontSize: 12.5)),
                     onPressed: () => _confirmDelete(context, t),
@@ -140,7 +145,8 @@ class _TankPageState extends State<TankPage> {
           Text(Metrics.sensorHint(t.waterType),
               style: const TextStyle(fontSize: 11.5, color: AppTheme.muted)),
           const SizedBox(height: 4),
-          Text('设备 IP：${t.esp32Ip.isEmpty ? "未配置（数据无法获取）" : t.esp32Ip} · 摄像头：${t.camUrl.isEmpty ? "未配置" : t.camUrl}',
+          Text(
+              '设备 IP：${t.esp32Ip.isEmpty ? "未配置（数据无法获取）" : t.esp32Ip} · 摄像头：${t.camUrl.isEmpty ? "未配置" : t.camUrl}',
               style: const TextStyle(fontSize: 11.5, color: AppTheme.muted)),
         ],
       ),
@@ -154,7 +160,9 @@ class _TankPageState extends State<TankPage> {
         title: const Text('删除鱼缸'),
         content: Text('确定删除「${t.name}」吗？仅删除 App 内档案，设备本身不受影响。'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppTheme.danger),
             onPressed: () => Navigator.pop(ctx, true),
@@ -171,7 +179,9 @@ class _TankPageState extends State<TankPage> {
         children: [
           Text(k, style: const TextStyle(fontSize: 11, color: AppTheme.muted)),
           const SizedBox(height: 2),
-          Text(v, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(v,
+              style:
+                  const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
         ],
       );
 
@@ -186,7 +196,8 @@ class _TankPageState extends State<TankPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('添加新缸', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+          const Text('添加新缸',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
           const Text('每缸对应一台 ESP32 主板：填写 IP 则直连设备取数；留空则创建手动管理缸（人工记录 / 周期提醒）。',
               style: TextStyle(fontSize: 11.5, color: AppTheme.muted)),
@@ -307,7 +318,8 @@ class _AddTankFormState extends State<_AddTankForm> {
     _cloudTopic.clear();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ip.isEmpty ? '已创建「$name」（手动管理）' : '已创建「$name」，正在连接 $ip …'),
+        content:
+            Text(ip.isEmpty ? '已创建「$name」（手动管理）' : '已创建「$name」，正在连接 $ip …'),
       ));
     }
     widget.onAdded();
@@ -321,7 +333,7 @@ class _AddTankFormState extends State<_AddTankForm> {
     return null;
   }
 
-  /// 云查看设备 ID → MQTT 主题：用户只填 iaqua-83d4，App 拼接 iaquaria/ 前缀
+  /// 云查看设备 ID → MQTT 主题：用户只填 iaqua-a1b2，App 拼接 iaquaria/ 前缀
   String _fmtCloudTopic(String raw) {
     final id = raw.trim();
     if (id.isEmpty) return '';
@@ -348,11 +360,15 @@ class _AddTankFormState extends State<_AddTankForm> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(children: [
-          Expanded(child: _field('缸名称', _name, hint: '如：客厅缸', error: _nameErr, required: true)),
+          Expanded(
+              child: _field('缸名称', _name,
+                  hint: '如：客厅缸', error: _nameErr, required: true)),
           const SizedBox(width: 8),
           Expanded(child: _field('位置', _location, hint: '客厅 · 南侧')),
         ]),
-        _field('ESP32 主板 IP', _ip, hint: '如 192.168.3.190，留空为手动管理缸', error: _ipErr,
+        _field('ESP32 主板 IP', _ip,
+            hint: '如 192.168.3.190，留空为手动管理缸',
+            error: _ipErr,
             keyboardType: const TextInputType.numberWithOptions(decimal: true)),
         _field('容量（升）', _capacity,
             keyboardType: const TextInputType.numberWithOptions()),
@@ -365,10 +381,13 @@ class _AddTankFormState extends State<_AddTankForm> {
                     child: Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: ChoiceChip(
-                        label: Center(child: Text(wt, style: const TextStyle(fontSize: 12.5))),
+                        label: Center(
+                            child: Text(wt,
+                                style: const TextStyle(fontSize: 12.5))),
                         selected: _waterType == wt,
                         selectedColor: AppTheme.tealLight,
-                        labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+                        labelPadding:
+                            const EdgeInsets.symmetric(horizontal: 12),
                         onSelected: (_) => setState(() => _waterType = wt),
                       ),
                     ),
@@ -380,7 +399,7 @@ class _AddTankFormState extends State<_AddTankForm> {
             style: const TextStyle(fontSize: 11.5, color: AppTheme.muted)),
         _field('摄像头地址', _cam, hint: 'http://192.168.3.191（独立设备）'),
         _field('云查看设备 ID', _cloudTopic,
-            hint: '如 iaqua-84d4（出门在外远程看数据；设备在线时已自动读取）'),
+            hint: '如 iaqua-xxxx（出门在外远程看数据；设备在线时已自动读取）'),
         const SizedBox(height: 12),
         FilledButton(
           style: FilledButton.styleFrom(backgroundColor: AppTheme.tealDark),
@@ -392,7 +411,9 @@ class _AddTankFormState extends State<_AddTankForm> {
   }
 
   Widget _field(String label, TextEditingController c,
-      {String hint = '', String? error, TextInputType? keyboardType,
+      {String hint = '',
+      String? error,
+      TextInputType? keyboardType,
       bool required = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),

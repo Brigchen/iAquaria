@@ -35,7 +35,7 @@ class Tank {
   /// 摄像头基地址（可选，独立设备），如 http://192.168.3.191（ESP32-CAM）
   final String camUrl;
 
-  /// 云查看主题（可选）：如 iaquaria/iaqua-83d4 —— 设备在云 Broker 上行时，
+  /// 云查看主题（可选）：如 iaquaria/iaqua-a1b2 —— 设备在云 Broker 上行时，
   /// App 局域网断开会自动订阅该主题（只读查看遥测/事件）
   final String cloudTopic;
 

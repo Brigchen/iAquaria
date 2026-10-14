@@ -34,17 +34,8 @@ class BioPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
-              Text('生物概览',
-                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
-              SizedBox(width: 6),
-              Expanded(
-                child: Text('（AI 识别结果可点开修正）',
-                    style: TextStyle(fontSize: 11, color: AppTheme.muted)),
-              ),
-            ],
-          ),
+          const Text('生物概览',
+              style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Row(
             children: [
