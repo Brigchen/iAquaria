@@ -8,7 +8,7 @@ ROOT = os.path.join(env["PROJECT_DIR"])
 SRC_HTML = os.path.join(ROOT, "data", "www", "index.html")
 OUT_H = os.path.join(ROOT, "src", "web", "www_gz.h")
 
-PLACEHOLDER = b"<html><body><h3>iAqua</h3><p>data/www/index.html missing</p></body></html>"
+PLACEHOLDER = b"<html><body><h3>iAquaria</h3><p>data/www/index.html missing</p></body></html>"
 
 
 def build_header():

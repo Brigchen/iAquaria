@@ -45,3 +45,14 @@ __pycache__/
 iAquaria/build_locked_tmp/
 **/compile_commands.json
 
+# 本地工作/临时文件（AI 记忆、一次性脚本与中间产物）
+query
+docs/.workbuddy/
+docs/_*.py
+docs/_*.ttf
+docs/audit_fix.py
+docs/compress_pages.py
+docs/enhance_ai.py
+docs/gen_ai_figs.py
+docs/gen_bom.py
+

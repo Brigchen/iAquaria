@@ -9,9 +9,9 @@
 #define IAQ_FW_VERSION "0.1.2"
 
 // ---- RS485 (UART1) 表 4-1 ----
-#define PIN_485_TX 17           // → 适配器 DI
-#define PIN_485_RX 16           // ← 适配器 RO
-#define PIN_485_DE 4            // → DE/RE；自动收发型改为 -1
+#define PIN_485_TX 17           // → 485模块丝印 RXD（交叉）
+#define PIN_485_RX 16           // ← 485模块丝印 TXD（交叉）
+#define PIN_485_DE 4            // 现板无 DI/RO/DE，此脚不接线；固件仍保留方向控制能力
 
 // ---- 本地传感器 表 4-1 ----
 #define PIN_DS18B20 13          // DATA，必须 4.7kΩ 上拉到 3.3V

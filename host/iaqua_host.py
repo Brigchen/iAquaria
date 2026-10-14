@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-iAqua PC 上位机
+iAquaria PC 上位机
 - WebSocket 连接固件 ws://<ip>/ws（默认尝试 iaqua.local）
 - 实时曲线：水温 / pH / ORP / TDS×2 / 水位（pyqtgraph）
 - 数据记录：SQLite（iaqua.db），可导出 CSV
@@ -127,7 +127,7 @@ class Recorder:
 class MainWindow(QMainWindow):
     def __init__(self, url):
         super().__init__()
-        self.setWindowTitle("iAqua 上位机")
+        self.setWindowTitle("iAquaria 上位机")
         self.resize(1100, 760)
         # 统一应用 logo（与 App 各端同源，相对本文件定位保证换机可用）
         logo = Path(__file__).resolve().parent / "logo.png"
@@ -392,7 +392,7 @@ class MainWindow(QMainWindow):
             msg = m.get("msg", "")
             self.statusBar().showMessage(("成功: " if ok else "失败: ") + msg, 8000)
             if ok and "WiFi" in msg:
-                QMessageBox.information(self, "iAqua", "WiFi 已保存，设备将重启")
+                QMessageBox.information(self, "iAquaria", "WiFi 已保存，设备将重启")
 
     def _on_tel(self, m):
         s = parse_tel(m)
@@ -543,12 +543,12 @@ class MainWindow(QMainWindow):
     def _save_wifi(self):
         ssid = self.edSsid.text().strip()
         if not ssid:
-            QMessageBox.warning(self, "iAqua", "SSID 不能为空")
+            QMessageBox.warning(self, "iAquaria", "SSID 不能为空")
             return
         self.send({"cmd": "wifi", "ssid": ssid, "pass": self.edPass.value() if hasattr(self.edPass, "value") else self.edPass.text()})
 
     def _reboot(self):
-        if QMessageBox.question(self, "iAqua", "确认重启设备?") == QMessageBox.Yes:
+        if QMessageBox.question(self, "iAquaria", "确认重启设备?") == QMessageBox.Yes:
             self.send({"cmd": "reboot"})
 
     # ================= 记录 =================

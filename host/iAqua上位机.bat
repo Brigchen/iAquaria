@@ -8,10 +8,10 @@ rem ============================================
 set URL=%1
 if "%URL%"=="" set URL=ws://iaqua.local/ws
 cd /d "%~dp0"
-echo iAqua host connecting to %URL% ...
+echo iAquaria host connecting to %URL% ...
 C:\Users\brigc\anaconda3\envs\iaqua-host\python.exe iaqua_host.py %URL%
 if errorlevel 1 (
   echo.
-  echo iAqua host exited with an error.
+  echo iAquaria host exited with an error.
   pause
 )

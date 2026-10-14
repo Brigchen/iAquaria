@@ -292,7 +292,7 @@ static void cloudTask(void*) {
 
 // ---------------- HTTP 云配置页 ----------------
 static void hCloudGet() {
-  String html = "<!DOCTYPE html><meta charset=utf-8><title>iAqua-Cam 云上传</title>"
+  String html = "<!DOCTYPE html><meta charset=utf-8><title>iAquaria-Cam 云上传</title>"
       "<body style='font-family:system-ui;max-width:460px;margin:40px auto'>"
       "<h2>云照片上传（EMQX MQTT over TLS）</h2>"
       "<form method=POST action=/cloud>"
@@ -418,7 +418,7 @@ static bool wifiConnect() {
 
 // ---------------- HTTP 处理器 ----------------
 static void hRoot() {
-  String j = "{\"model\":\"iAqua-Cam\",\"ip\":\"" + WiFi.localIP().toString() +
+  String j = "{\"model\":\"iAquaria-Cam\",\"ip\":\"" + WiFi.localIP().toString() +
              "\",\"ap\":" + (WiFi.getMode() & WIFI_AP ? "true" : "false") +
              ",\"rssi\":" + String(WiFi.RSSI()) +
              ",\"up\":" + String(millis() / 1000) +
@@ -439,9 +439,9 @@ static void hCapture() {
 }
 
 static void hWifiGet() {
-  String html = "<!DOCTYPE html><meta charset=utf-8><title>iAqua-Cam</title>"
+  String html = "<!DOCTYPE html><meta charset=utf-8><title>iAquaria-Cam</title>"
       "<body style='font-family:system-ui;max-width:420px;margin:40px auto'>"
-      "<h2>iAqua-Cam WiFi 配置</h2><form method=POST action=/wifi>"
+      "<h2>iAquaria-Cam WiFi 配置</h2><form method=POST action=/wifi>"
       "SSID<br><input name=s style='width:100%'><br><br>"
       "密码<br><input name=p type=password style='width:100%'><br><br>"
       "<button style='padding:8px 24px'>保存并重启</button></form></body>";
